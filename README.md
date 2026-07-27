@@ -117,6 +117,16 @@ It helps the project grow.
 
 ---
 
+---
+
+## 📬 Contact
+
+📧 Email: **alexjames7830@gmail.com**
+
+🌐 Portfolio: **http://alex-james.vercel.app**
+
+---
+
 # 📄 License
 
 Licensed under the **MIT License**.
