@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>OrionStore</title>
+  
+  <!-- Primary Meta Tags -->
+  <meta name="title" content="ΛLΞX JΛMΞS ᗪEV">
+  <meta name="description" content="ΛLΞX JΛMΞS ᗪEV - UI/UX, Web/App Development, 3D & Branding Agency">
+  <meta name="theme-color" content="#1D1B20">
+
+  <!-- Open Graph / Facebook / WhatsApp -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ΛLΞX JΛMΞS ᗪEV">
+  <meta property="og:description" content="UI/UX, Web/App Development, 3D & Branding Agency">
+  <meta property="og:image" content="https://i.postimg.cc/qBGFpD6Z/ALEX-JAMES-GITHUB.png">
+
+  <!-- Apple / Web App / Manifest -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ΛLΞX JΛMΞS">
+  <link rel="apple-touch-icon" href="https://i.postimg.cc/qBGFpD6Z/ALEX-JAMES-GITHUB.png">
+
+  <!-- Fonts & Material Symbols Preconnect & Loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+      tailwind.config = {
+          darkMode: 'class',
+          theme: {
+              extend: {
+                  fontFamily: {
+                      sans: ['Inter', 'Plus Jakarta Sans', 'sans-serif'],
+                  },
+                  colors: {
+                      orion: {
+                          bg: '#0D0F17',
+                          surface: '#161926',
+                          surfaceVariant: '#202436',
+                          primary: '#6366F1',
+                          accent: '#8B5CF6',
+                          subtext: '#94A3B8'
+                      }
+                  }
+              }
+          }
+      }
+  </script>
+
+  <style>
+      * {
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          -khtml-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+      }
+
+      input, textarea {
+          -webkit-user-select: auto !important;
+          user-select: auto !important;
+      }
+
+      body {
+          font-family: 'Inter', sans-serif;
+          -webkit-tap-highlight-color: transparent;
+          overflow-x: hidden;
+          transition: background-color 0.4s ease, color 0.4s ease;
+      }
+
+      .ios-card {
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, background-color 0.3s ease;
+      }
+
+      .ios-card:hover {
+          transform: translateY(-4px) scale(1.02);
+      }
+
+      .ios-card:active {
+          transform: scale(0.94);
+          transition: transform 0.15s ease-out;
+      }
+
+      .ios-switch {
+          position: relative;
+          width: 52px;
+          height: 31px;
+          background-color: #34C759;
+          border-radius: 9999px;
+          cursor: pointer;
+          transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+          padding: 2px;
+      }
+
+      .ios-switch.off {
+          background-color: #E9E9EA;
+      }
+
+      .dark .ios-switch.off {
+          background-color: #39393D;
+      }
+
+      .ios-switch-thumb {
+          width: 27px;
+          height: 27px;
+          background-color: #FFFFFF;
+          border-radius: 50%;
+          position: absolute;
+          top: 2px;
+          left: 2px;
+          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+          transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      .ios-switch.on .ios-switch-thumb {
+          transform: translateX(21px);
+      }
+
+      .nav-glass {
+          backdrop-filter: blur(25px);
+          -webkit-backdrop-filter: blur(25px);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+          animation: iosSlideUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      .nav-btn-active {
+          background: rgba(99, 102, 241, 0.75) !important;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.3) !important;
+          box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35) !important;
+          color: #FFFFFF !important;
+      }
+
+      .nav-btn-inactive {
+          background: transparent !important;
+          border: 1px solid transparent !important;
+          box-shadow: none !important;
+      }
+
+      .nav-btn {
+          transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      .nav-btn:active {
+          transform: scale(0.88);
+      }
+
+      @keyframes iosSlideUp {
+          from { transform: translateY(100px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+      }
+
+      .modal-blur {
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+      }
+
+      .profile-container-m3 {
+          position: relative;
+          width: 115px;
+          height: 115px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+      }
+
+      .profile-m3-outer {
+          position: absolute;
+          inset: -4px;
+          border-radius: 2.7rem;
+          background: linear-gradient(135deg, rgba(192, 132, 252, 0.8), rgba(99, 102, 241, 0.5));
+          animation: rotateRing 15s linear infinite;
+          opacity: 0.85;
+      }
+
+      .profile-m3-dashed {
+          position: absolute;
+          inset: 2px;
+          border-radius: 2.3rem;
+          border: 2px dashed rgba(255, 255, 255, 0.4);
+      }
+
+      @keyframes rotateRing {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+      }
+
+      .header-avatar-ring {
+          position: absolute;
+          inset: -2px;
+          border-radius: 1.2rem;
+          border: 1.5px dashed rgba(192, 132, 252, 0.75);
+          animation: rotateRing 10s linear infinite;
+      }
+
+      .game-canvas-container {
+          box-shadow: 0 0 25px rgba(99, 102, 241, 0.25), inset 0 0 15px rgba(0, 0, 0, 0.5);
+      }
+
+      /* Authentic iOS Activity Indicator Bar Spinner */
+      .ios-spinner {
+          position: relative;
+          width: 22px;
+          height: 22px;
+          display: inline-block;
+      }
+
+      .ios-spinner div {
+          position: absolute;
+          left: 48%;
+          top: 20%;
+          width: 8%;
+          height: 26%;
+          background: #6366F1;
+          border-radius: 50px;
+          animation: iosSpinnerFade 1s linear infinite;
+      }
+
+      .ios-spinner div:nth-child(1) { transform: rotate(0deg) translate(0, -130%); animation-delay: 0s; }
+      .ios-spinner div:nth-child(2) { transform: rotate(30deg) translate(0, -130%); animation-delay: -0.9167s; }
+      .ios-spinner div:nth-child(3) { transform: rotate(60deg) translate(0, -130%); animation-delay: -0.8333s; }
+      .ios-spinner div:nth-child(4) { transform: rotate(90deg) translate(0, -130%); animation-delay: -0.75s; }
+      .ios-spinner div:nth-child(5) { transform: rotate(120deg) translate(0, -130%); animation-delay: -0.6667s; }
+      .ios-spinner div:nth-child(6) { transform: rotate(150deg) translate(0, -130%); animation-delay: -0.5833s; }
+      .ios-spinner div:nth-child(7) { transform: rotate(180deg) translate(0, -130%); animation-delay: -0.5s; }
+      .ios-spinner div:nth-child(8) { transform: rotate(210deg) translate(0, -130%); animation-delay: -0.4167s; }
+      .ios-spinner div:nth-child(9) { transform: rotate(240deg) translate(0, -130%); animation-delay: -0.3333s; }
+      .ios-spinner div:nth-child(10) { transform: rotate(270deg) translate(0, -130%); animation-delay: -0.25s; }
+      .ios-spinner div:nth-child(11) { transform: rotate(300deg) translate(0, -130%); animation-delay: -0.1667s; }
+      .ios-spinner div:nth-child(12) { transform: rotate(330deg) translate(0, -130%); animation-delay: -0.0833s; }
+
+      @keyframes iosSpinnerFade {
+          0% { opacity: 1; }
+          100% { opacity: 0.15; }
+      }
+
+      /* iOS Style Alert Modal Styles with Smooth Animation */
+      #iosAlertOverlay {
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          transition: opacity 0.3s ease;
+      }
+      #iosAlertBox {
+          transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+      }
+  </style>
+</head>
+<body class="bg-[#0D0F17] dark:bg-[#0D0F17] text-slate-900 dark:text-slate-100 pb-36 transition-colors duration-500" id="appBody">
+
+    <!-- Top App Bar -->
+    <header class="sticky top-0 z-40 bg-white/80 dark:bg-[#0D0F17]/80 backdrop-blur-xl px-5 py-4 flex items-center justify-between border-b border-slate-200 dark:border-white/5 transition-colors duration-500">
+        <div class="flex items-center gap-3">
+            <div class="relative w-10 h-10 flex items-center justify-center p-0.5">
+                <div class="header-avatar-ring"></div>
+                <div class="w-full h-full rounded-2xl bg-[#161926] border border-white/20 overflow-hidden shadow-lg flex items-center justify-center relative z-10">
+                    <img id="customAppLogo" src="https://i.postimg.cc/qBGFpD6Z/ALEX-JAMES-GITHUB.png" alt="Custom Logo" class="w-full h-full object-cover">
+                </div>
+            </div>
+            <h1 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                Orion<span class="text-orion-primary">Store</span>
+            </h1>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <div id="offlineBadge" class="hidden items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold animate-pulse">
+                <span class="w-2 h-2 rounded-full bg-rose-500"></span> OFFLINE
+            </div>
+            <div id="iosToggle" class="ios-switch on" onclick="toggleTheme()" title="Toggle Theme">
+                <div class="ios-switch-thumb"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 mt-6">
+
+        <!-- OFFLINE VIEW -->
+        <div id="offlineView" class="hidden space-y-6 text-center py-6">
+            <div class="p-6 rounded-3xl bg-slate-100 dark:bg-orion-surface border border-slate-200 dark:border-white/10 shadow-2xl space-y-4">
+                <div class="space-y-1">
+                    <h2 class="text-xl font-extrabold text-slate-900 dark:text-white flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-amber-400">signal_wifi_off</span> You are currently offline!
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-orion-subtext">Tap screen or press Space/Up Arrow to jump with 3D Cyber Dino:</p>
+                </div>
+                
+                <div class="flex items-center justify-center gap-6 px-6 py-3 rounded-2xl bg-white dark:bg-orion-surfaceVariant border border-slate-200 dark:border-white/10 shadow-sm max-w-sm mx-auto">
+                    <div class="text-left">
+                        <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Current Score</span>
+                        <span id="currentScore" class="text-lg font-black text-orion-primary">00000</span>
+                    </div>
+                    <div class="w-[1px] h-8 bg-slate-200 dark:bg-white/10"></div>
+                    <div class="text-left">
+                        <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">High Score</span>
+                        <span id="highScore" class="text-lg font-black text-amber-400">00000</span>
+                    </div>
+                </div>
+
+                <div onclick="triggerJump()" class="game-canvas-container w-full h-[320px] rounded-2xl overflow-hidden border border-indigo-500/30 bg-[#0b0e17] relative flex flex-col items-center justify-center cursor-pointer">
+                    <canvas id="dinoCanvas" width="600" height="250" class="w-full h-full object-contain"></canvas>
+                    <div id="gameOverlay" class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center text-white transition-opacity">
+                        <span class="material-symbols-outlined text-4xl mb-2 text-orion-primary animate-bounce">sports_esports</span>
+                        <p class="text-sm font-extrabold tracking-wide">TAP HERE OR PRESS SPACE TO START 3D GAME</p>
+                    </div>
+                </div>
+                
+                <button onclick="checkConnectionAndReload()" class="px-6 py-3 rounded-2xl bg-orion-primary text-white text-xs font-bold shadow-lg active:scale-95 transition">
+                    Check Connection Again
+                </button>
+            </div>
+        </div>
+
+        <!-- STORE VIEW -->
+        <div id="storeView" class="space-y-6">
+
+            <!-- Search Header -->
+            <section class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <p id="appStatus" class="text-xs font-bold px-3.5 py-1.5 rounded-full bg-orion-primary/20 text-orion-primary border border-orion-primary/30 transition-all duration-300 flex items-center gap-1.5">
+                        <span id="statusPulse" class="w-2 h-2 rounded-full bg-orion-primary animate-pulse"></span>
+                        <span id="statusText">UNIVERSAL APPS HUB</span>
+                    </p>
+                </div>
+
+                <!-- Clean Search Bar without Magnifying Icon -->
+                <div class="relative flex items-center group">
+                    <input id="searchInput" type="text" placeholder="Search any app worldwide (e.g. YouTube, WhatsApp, Telegram)..." 
+                           oninput="handleSearchInput(this.value)"
+                           onkeypress="if(event.key === 'Enter') executeGlobalSearch()"
+                           class="w-full bg-slate-100 dark:bg-orion-surface text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-orion-subtext/60 pl-6 pr-48 py-4 rounded-3xl border border-slate-200 dark:border-white/10 focus:outline-none focus:border-orion-primary focus:ring-4 focus:ring-orion-primary/20 transition-all duration-300">
+                    
+                    <div class="absolute right-2 flex items-center gap-2">
+                        <!-- Dynamic iOS Activity Spinner Loader (hidden by default) -->
+                        <div id="iosSearchSpinner" class="hidden items-center justify-center pr-1">
+                            <div class="ios-spinner">
+                                <div></div><div></div><div></div><div></div>
+                                <div></div><div></div><div></div><div></div>
+                                <div></div><div></div><div></div><div></div>
+                            </div>
+                        </div>
+
+                        <!-- Cross / Clear Button -->
+                        <button id="clearSearchBtn" onclick="clearSearchInput()" title="Clear Search" class="hidden w-8 h-8 rounded-full bg-slate-200 dark:bg-white/10 hover:bg-rose-500/20 text-slate-500 dark:text-slate-300 hover:text-rose-400 flex items-center justify-center transition active:scale-90">
+                            <span class="material-symbols-outlined text-lg">close</span>
+                        </button>
+
+                        <button id="searchRefreshBtn" onclick="refreshCurrentView()" title="Refresh" class="w-9 h-9 rounded-2xl bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 flex items-center justify-center text-slate-700 dark:text-white transition active:scale-90">
+                            <span id="refreshIcon" class="material-symbols-outlined text-lg">refresh</span>
+                        </button>
+                        
+                        <button onclick="executeGlobalSearch()" class="px-5 py-2.5 rounded-2xl bg-orion-primary hover:bg-indigo-500 text-xs font-bold text-white transition-all shadow-md active:scale-90">
+                            Search
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Featured Banner -->
+            <section id="featuredSection" class="hidden">
+                <div id="featuredCard" class="ios-card relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-indigo-900/20 dark:from-indigo-950/80 via-slate-100 dark:via-orion-surface to-white dark:to-orion-bg border border-orion-primary/30 min-h-[160px] flex items-center shadow-xl">
+                    
+                    <button id="featuredSaveBtn" class="absolute top-4 right-4 p-2.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 text-slate-400 hover:text-amber-400 transition-all active:scale-90 z-20">
+                        <span id="featuredBookmarkIcon" class="material-symbols-outlined text-2xl">bookmark_add</span>
+                    </button>
+
+                    <div class="flex items-center gap-5 z-10 w-full pr-10">
+                        <img id="featuredImg" src="" alt="icon" class="w-16 h-16 rounded-2xl bg-orion-surfaceVariant object-cover shadow-2xl border border-white/10 hidden">
+                        <div class="space-y-2 max-w-lg">
+                            <div class="flex items-center gap-2">
+                                <span id="featuredBadge" class="text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full bg-orion-primary/20 text-orion-primary border border-orion-primary/30">
+                                    TOP RESULT
+                                </span>
+                                <span id="featuredStars" class="text-xs font-bold text-amber-400 flex items-center gap-1"></span>
+                            </div>
+                            <h3 id="featuredTitle" class="text-xl font-extrabold text-slate-900 dark:text-white">App Title</h3>
+                            <p id="featuredDesc" class="text-xs text-slate-600 dark:text-orion-subtext line-clamp-2 leading-relaxed"></p>
+                            
+                            <div id="featuredBtn" class="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-gray-200 transition shadow-lg active:scale-90 cursor-pointer">
+                                <span class="material-symbols-outlined text-sm">download</span> Get Release / Repo
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Apps Grid Section -->
+            <section>
+                <div id="repoGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-200 dark:bg-orion-surface p-5 rounded-3xl animate-pulse h-48 border border-white/5"></div>
+                    <div class="bg-slate-200 dark:bg-orion-surface p-5 rounded-3xl animate-pulse h-48 border border-white/5"></div>
+                    <div class="bg-slate-200 dark:bg-orion-surface p-5 rounded-3xl animate-pulse h-48 border border-white/5"></div>
+                    <div class="bg-slate-200 dark:bg-orion-surface p-5 rounded-3xl animate-pulse h-48 border border-white/5"></div>
+                </div>
+            </section>
+        </div>
+
+        <!-- SAVED APPS VIEW -->
+        <div id="savedView" class="space-y-6 hidden">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-400">bookmark</span> SAVED APPS (Local Storage)
+                </h2>
+                <button onclick="clearSavedApps()" class="text-xs px-3 py-1.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold hover:bg-rose-500/30 transition active:scale-95">
+                    Clear All
+                </button>
+            </div>
+            <div id="savedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            </div>
+        </div>
+
+        <!-- DEV / PROFILE VIEW -->
+        <div id="profileView" class="space-y-6 text-center hidden">
+            <div class="flex justify-center mt-6">
+                <div class="profile-container-m3">
+                    <div class="profile-m3-outer"></div>
+                    <div class="profile-m3-dashed"></div>
+                    <div class="w-24 h-24 rounded-[2rem] bg-[#161926] p-1.5 shadow-2xl overflow-hidden relative z-10 flex items-center justify-center border border-white/10">
+                        <img src="https://i.postimg.cc/qBGFpD6Z/ALEX-JAMES-GITHUB.png" alt="Alex James Profile" class="w-full h-full object-cover rounded-[1.6rem]">
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-widest uppercase">ΛLΞX JΛMΞS ᗪEV</h2>
+            </div>
+
+            <div class="space-y-3 pt-2 text-left max-w-md mx-auto">
+                <div class="flex items-center justify-center gap-3 my-3">
+                    <div class="h-[1px] flex-1 bg-gradient-to-r from-transparent to-slate-300 dark:to-white/20"></div>
+                    <span class="text-[11px] font-black tracking-widest text-slate-700 dark:text-slate-200 uppercase px-4 py-1.5 rounded-full bg-slate-200/80 dark:bg-white/10 border border-slate-300 dark:border-white/15 shadow-sm flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                        CONNECT WITH ME
+                    </span>
+                    <div class="h-[1px] flex-1 bg-gradient-to-l from-transparent to-slate-300 dark:to-white/20"></div>
+                </div>
+                
+                <div onclick="window.open('https://alex-james.vercel.app', '_blank')" class="ios-card p-4 rounded-3xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white flex items-center justify-between border border-indigo-400/30 shadow-lg cursor-pointer">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl text-white">
+                            <span class="material-symbols-outlined">language</span>
+                        </div>
+                        <div>
+                            <h4 class="font-extrabold text-sm text-white">Visit My Portfolio</h4>
+                        </div>
+                    </div>
+                    <span class="material-symbols-outlined text-sm opacity-80">arrow_forward_ios</span>
+                </div>
+
+                <div onclick="window.open('https://github.com/AlexJamesHQ', '_blank')" class="ios-card p-4 rounded-3xl bg-slate-100 dark:bg-[#1E2330] text-slate-900 dark:text-white flex items-center justify-between border border-slate-200 dark:border-white/10 shadow-md cursor-pointer">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-11 h-11 rounded-2xl bg-slate-300 dark:bg-black/40 border border-slate-300 dark:border-white/10 flex items-center justify-center text-xl">
+                            <svg class="w-6 h-6 fill-current text-slate-900 dark:text-white" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-extrabold text-sm">GitHub Profile</h4>
+                        </div>
+                    </div>
+                    <span class="material-symbols-outlined text-sm text-slate-400 dark:text-orion-subtext">arrow_forward_ios</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- App Info Bottom Sheet Modal -->
+    <div id="appInfoModal" class="fixed inset-0 z-50 modal-blur bg-black/60 opacity-0 pointer-events-none transition-all duration-300 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeAppInfo()">
+        <div id="appInfoSheet" class="w-full max-w-lg bg-white dark:bg-[#161926] border border-slate-200 dark:border-white/10 rounded-t-3xl sm:rounded-3xl p-6 space-y-5 transform translate-y-full transition-all duration-500 ease-out shadow-2xl" onclick="event.stopPropagation()">
+            
+            <div class="relative flex items-center justify-center pt-1 pb-2">
+                <div class="w-12 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full cursor-pointer" onclick="closeAppInfo()"></div>
+                <button onclick="closeAppInfo()" class="absolute right-0 top-0 w-9 h-9 rounded-full bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 flex items-center justify-center text-slate-500 dark:text-orion-subtext border border-slate-200 dark:border-white/5 transition active:scale-90">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+            </div>
+
+            <div class="flex items-start gap-4">
+                <img id="modalIcon" src="" class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-orion-surfaceVariant object-cover border border-slate-200 dark:border-white/10 shadow-lg">
+                <div class="space-y-1">
+                    <h3 id="modalTitle" class="text-xl font-extrabold text-slate-900 dark:text-white"></h3>
+                    <div id="modalOwner" class="text-xs text-slate-500 dark:text-orion-subtext font-medium flex items-center gap-1.5 flex-wrap"></div>
+                    <div id="modalBadges" class="flex items-center gap-3 pt-1 text-xs">
+                        <span id="modalStars" class="text-amber-500 dark:text-amber-400 font-bold flex items-center gap-1"></span>
+                        <span id="modalForks" class="text-slate-500 dark:text-orion-subtext font-bold flex items-center gap-1"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-orion-bg/80 p-4 rounded-2xl border border-slate-200 dark:border-white/10 space-y-2">
+                <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-sm text-orion-primary">info</span> ABOUT THIS APP
+                </h4>
+                <p id="modalDesc" class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-h-36 overflow-y-auto pr-1 font-medium"></p>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button id="modalRepoBtn" onclick="openUrlFromData(this)" data-url="#" class="flex-1 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-2xl text-xs font-bold text-slate-800 dark:text-white text-center border border-slate-200 dark:border-white/10 transition active:scale-95 cursor-pointer flex items-center justify-center">
+                    Source Repo
+                </button>
+                <button id="modalReleaseBtn" onclick="openReleaseModal()" class="flex-1 py-3 bg-orion-primary hover:bg-indigo-500 rounded-2xl text-xs font-bold text-white text-center shadow-lg shadow-indigo-500/25 transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5">
+                    <span class="material-symbols-outlined text-sm">download</span> Get Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RELEASE DOWNLOADS SHEET -->
+    <div id="releaseModal" class="fixed inset-0 z-50 modal-blur bg-black/80 opacity-0 pointer-events-none transition-all duration-300 flex items-end justify-center p-0 sm:p-4" onclick="closeReleaseModal()">
+        <div id="releaseSheet" class="w-full max-w-xl bg-[#161926] border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 space-y-4 transform translate-y-full transition-all duration-500 ease-out shadow-2xl" onclick="event.stopPropagation()">
+            
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                <div>
+                    <h3 id="releaseAppName" class="text-lg font-extrabold text-white">Available Downloads</h3>
+                    <p id="releaseTag" class="text-xs text-orion-primary font-bold">Latest Release</p>
+                </div>
+                <button onclick="closeReleaseModal()" class="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 transition active:scale-90">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+            </div>
+
+            <div id="releaseAssetsList" class="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1">
+                <!-- Assets / Files will load dynamically here -->
+            </div>
+
+            <div class="pt-2">
+                <button onclick="closeReleaseModal()" class="w-full py-3.5 bg-orion-primary hover:bg-indigo-500 text-white font-extrabold rounded-full text-center text-sm shadow-xl active:scale-95 transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- iOS-Style Custom Alert Modal -->
+    <div id="iosAlertModal" class="fixed inset-0 z-50 flex items-center justify-center px-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div id="iosAlertOverlay" class="absolute inset-0 bg-black/40" onclick="closeIosAlert()"></div>
+        <div id="iosAlertBox" class="relative w-full max-w-[280px] sm:max-w-[300px] bg-[#E3E3E3]/90 dark:bg-[#1E1E1E]/95 backdrop-blur-2xl rounded-2xl border border-white/20 dark:border-white/10 shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300">
+            <div class="p-5 text-center space-y-2">
+                <h3 class="text-[17px] font-semibold text-slate-900 dark:text-white tracking-tight">Please clear cache</h3>
+            </div>
+            <div class="border-t border-slate-300/60 dark:border-white/10 flex">
+                <button onclick="closeIosAlert()" class="w-full py-3 text-[17px] font-semibold text-[#007AFF] dark:text-[#0A84FF] active:bg-slate-300/40 dark:active:bg-white/10 transition">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll To Top Button -->
+    <button id="scrollTopBtn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="fixed bottom-24 right-6 w-11 h-11 rounded-full bg-orion-primary text-white flex items-center justify-center shadow-lg shadow-orion-primary/30 opacity-0 pointer-events-none transition-all duration-300 z-30 active:scale-90">
+        <span class="material-symbols-outlined">arrow_upward</span>
+    </button>
+
+    <!-- FIXED iOS-STYLE BOTTOM NAV BAR -->
+    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+        <nav class="nav-glass bg-white/40 dark:bg-[#161926]/40 border border-white/40 dark:border-white/15 flex items-center p-1.5 rounded-full transition-all duration-500 shadow-2xl">
+            
+            <button onclick="switchCategory('android', 'android', 'ANDROID APPS', this)" class="nav-btn nav-btn-active px-5 py-2.5 rounded-full transition flex items-center gap-2 text-xs font-extrabold">
+                <span class="material-symbols-outlined text-lg">android</span>
+                <span>Apps</span>
+            </button>
+
+            <button onclick="switchCategory('win', 'windows', 'WINDOWS APPS', this)" class="nav-btn nav-btn-inactive px-4 py-2.5 rounded-full text-slate-700 dark:text-orion-subtext hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2 text-xs font-bold">
+                <svg class="w-4 h-4 fill-current" viewBox="0 0 88 88">
+                    <path d="M0 12.402l35.687-4.859v34.71H0V12.402zm35.687 33.582v34.71L0 75.836V45.984h35.687zM39.67 6.981L88 0v41.696H39.67V6.981zm48.33 40.231V88L39.67 80.887V47.212H88z"/>
+                </svg>
+            </button>
+
+            <button onclick="switchCategory('saved', null, null, this)" class="nav-btn nav-btn-inactive px-4 py-2.5 rounded-full text-slate-700 dark:text-orion-subtext hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2 text-xs font-bold">
+                <span class="material-symbols-outlined text-lg">bookmark</span>
+                <span>Saved</span>
+            </button>
+
+            <button onclick="switchCategory('dev', null, null, this)" class="nav-btn nav-btn-inactive px-4 py-2.5 rounded-full text-slate-700 dark:text-orion-subtext hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2 text-xs font-bold">
+                <span class="material-symbols-outlined text-lg">code</span>
+                <span>Dev</span>
+            </button>
+
+        </nav>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        let currentSelectedRepo = null;
+        let currentLoadedRepos = [];
+        let isDarkMode = true;
+
+        const THEME_KEY = 'orion_theme_mode';
+        const LAST_SEARCH_KEY = 'orion_last_search';
+        const SAVED_APPS_KEY = 'orion_saved_apps';
+
+        // iOS Style Custom Alert Functions
+        function showIosAlert() {
+            const modal = document.getElementById('iosAlertModal');
+            const box = document.getElementById('iosAlertBox');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            box.classList.remove('scale-95', 'opacity-0');
+            box.classList.add('scale-100', 'opacity-100');
+        }
+
+        function closeIosAlert() {
+            const modal = document.getElementById('iosAlertModal');
+            const box = document.getElementById('iosAlertBox');
+            box.classList.remove('scale-100', 'opacity-100');
+            box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+            }, 300);
+        }
+
+        // Helper functions for Search Spinner Loading
+        function showSearchSpinner() {
+            const spinner = document.getElementById('iosSearchSpinner');
+            if (spinner) {
+                spinner.classList.remove('hidden');
+                spinner.classList.add('flex');
+            }
+        }
+
+        function hideSearchSpinner() {
+            const spinner = document.getElementById('iosSearchSpinner');
+            if (spinner) {
+                spinner.classList.remove('flex');
+                spinner.classList.add('hidden');
+            }
+        }
+
+        // Search Input & Clear Control
+        function handleSearchInput(value) {
+            const clearBtn = document.getElementById('clearSearchBtn');
+            if (value.trim().length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+        }
+
+        function clearSearchInput() {
+            const input = document.getElementById('searchInput');
+            input.value = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            hideSearchSpinner();
+            input.focus();
+        }
+
+        function openUrlFromData(target) {
+            let url = typeof target === 'string' ? target : target.getAttribute('data-url');
+            if (url && url !== '#') {
+                window.open(url, '_blank');
+            }
+        }
+
+        async function openReleaseModal(repoData = null) {
+            const repo = repoData || currentSelectedRepo;
+            if (!repo) return;
+
+            document.getElementById('releaseAppName').innerText = repo.name;
+            document.getElementById('releaseTag').innerText = "Fetching releases...";
+            
+            const listContainer = document.getElementById('releaseAssetsList');
+            listContainer.innerHTML = `<div class="text-center py-8 text-orion-subtext text-xs animate-pulse">Loading release files from GitHub...</div>`;
+
+            const modal = document.getElementById('releaseModal');
+            const sheet = document.getElementById('releaseSheet');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            sheet.classList.remove('translate-y-full');
+
+            if (repo.isFDroid) {
+                document.getElementById('releaseTag').innerText = "F-Droid Package";
+                listContainer.innerHTML = `
+                    <div class="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-sm text-white">${repo.name}.apk</h4>
+                            <p class="text-[11px] text-orion-subtext">F-Droid Repository Asset</p>
+                        </div>
+                        <a href="${repo.html_url}" target="_blank" class="px-4 py-2 bg-orion-primary text-white text-xs font-bold rounded-xl shadow-md active:scale-95 transition">Download</a>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const owner = repo.owner ? repo.owner.login : '';
+                const repoName = repo.name;
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repoName}/releases/latest`);
+                
+                if (response.ok) {
+                    const release = await response.json();
+                    document.getElementById('releaseTag').innerText = `Release: ${release.tag_name || 'Latest'}`;
+                    
+                    if (release.assets && release.assets.length > 0) {
+                        listContainer.innerHTML = release.assets.map(asset => {
+                            const sizeMB = (asset.size / (1024 * 1024)).toFixed(1);
+                            return `
+                                <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 hover:bg-white/10 transition">
+                                    <div class="overflow-hidden">
+                                        <h4 class="font-bold text-xs text-white truncate" title="${asset.name}">${asset.name}</h4>
+                                        <p class="text-[10px] text-orion-subtext mt-0.5">${sizeMB} MB • ${formatNumber(asset.download_count)} downloads</p>
+                                    </div>
+                                    <a href="${asset.browser_download_url}" target="_blank" class="px-4 py-2 bg-orion-primary hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md active:scale-95 transition flex items-center gap-1 shrink-0">
+                                        <span class="material-symbols-outlined text-sm">download</span> Get
+                                    </a>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        listContainer.innerHTML = `
+                            <div class="text-center py-6 text-slate-400 text-xs">
+                                No direct build assets found. 
+                                <br><a href="${repo.html_url}/releases" target="_blank" class="text-orion-primary font-bold underline mt-2 inline-block">View Releases Page on GitHub</a>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Problem icon with iOS style alert opening
+                    listContainer.innerHTML = `
+                        <div class="text-center py-6 space-y-3">
+                            <p class="text-slate-400 text-xs">No official release tags uploaded yet.</p>
+                            <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/10 border border-white/15 text-white text-xs font-semibold shadow-lg backdrop-blur-md cursor-pointer hover:bg-white/15 transition group relative" onclick="showIosAlert()">
+                                <a href="${repo.html_url}" target="_blank" class="hover:underline" onclick="event.stopPropagation()">Visit Repository Code</a>
+                                <span class="material-symbols-outlined text-amber-400 text-base group-hover:scale-110 transition" title="Please clear cache">report_problem</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                listContainer.innerHTML = `
+                    <div class="text-center py-6 text-rose-400 text-xs">
+                        Failed to fetch releases. 
+                        <br><a href="${repo.html_url}/releases" target="_blank" class="text-white font-bold underline mt-2 inline-block">Open Releases in Browser</a>
+                    </div>
+                `;
+            }
+        }
+
+        function closeReleaseModal() {
+            const modal = document.getElementById('releaseModal');
+            const sheet = document.getElementById('releaseSheet');
+            sheet.classList.add('translate-y-full');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function getSavedApps() {
+            return JSON.parse(localStorage.getItem(SAVED_APPS_KEY)) || [];
+        }
+
+        function toggleSaveApp(repoId) {
+            let saved = getSavedApps();
+            let repo = currentLoadedRepos.find(r => String(r.id) === String(repoId)) || saved.find(r => String(r.id) === String(repoId));
+            
+            if (!repo) return;
+
+            const index = saved.findIndex(item => String(item.id) === String(repoId));
+            if (index > -1) {
+                saved.splice(index, 1);
+            } else {
+                saved.push(repo);
+            }
+
+            localStorage.setItem(SAVED_APPS_KEY, JSON.stringify(saved));
+            
+            if(currentLoadedRepos.length > 0) {
+                updateFeatured(currentLoadedRepos[0]);
+                renderGrid(currentLoadedRepos.slice(1));
+            }
+            
+            if (!document.getElementById('savedView').classList.contains('hidden')) {
+                renderSavedApps();
+            }
+        }
+
+        function clearSavedApps() {
+            if(confirm("Are you sure you want to clear all saved apps from LocalStorage?")) {
+                localStorage.removeItem(SAVED_APPS_KEY);
+                renderSavedApps();
+                if(currentLoadedRepos.length > 0) {
+                    updateFeatured(currentLoadedRepos[0]);
+                    renderGrid(currentLoadedRepos.slice(1));
+                }
+            }
+        }
+
+        function renderSavedApps() {
+            const saved = getSavedApps();
+            const grid = document.getElementById('savedGrid');
+
+            if (saved.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500 dark:text-orion-subtext">No saved apps found in LocalStorage.</div>`;
+                return;
+            }
+
+            grid.innerHTML = saved.map((repo) => {
+                const logoUrl = repo.owner ? repo.owner.avatar_url : '';
+
+                return `
+                    <div onclick="openAppInfo('${repo.id}')" class="ios-card p-4 rounded-3xl flex flex-col items-center text-center justify-between bg-slate-100 dark:bg-orion-surface border border-slate-200 dark:border-white/5 cursor-pointer group relative">
+                        <button onclick="event.stopPropagation(); toggleSaveApp('${repo.id}')" class="absolute top-3 right-3 text-amber-400 hover:scale-110 transition">
+                            <span class="material-symbols-outlined text-xl">bookmark_remove</span>
+                        </button>
+                        
+                        <div class="w-14 h-14 rounded-2xl bg-slate-200 dark:bg-orion-surfaceVariant p-1 flex items-center justify-center mb-2 overflow-hidden border border-slate-300 dark:border-white/10 shadow-inner group-hover:border-orion-primary/50 transition">
+                            <img src="${logoUrl}" class="w-full h-full object-cover rounded-xl" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/github/explore/main/topics/github/github.png';">
+                        </div>
+                        <div class="w-full">
+                            <h4 class="font-bold text-sm text-slate-900 dark:text-white truncate w-full" title="${repo.name}">${repo.name}</h4>
+                            <p class="text-[11px] text-slate-500 dark:text-orion-subtext truncate w-full mt-0.5">${repo.owner ? repo.owner.login : ''}</p>
+                        </div>
+                        <div class="flex items-center gap-1 my-2 text-[11px] text-amber-500 dark:text-amber-400 font-bold">
+                            <span class="material-symbols-outlined text-sm">star</span> ${formatNumber(repo.stargazers_count)}
+                        </div>
+                        <div class="w-full flex gap-1.5 mt-1" onclick="event.stopPropagation()">
+                            <div onclick="triggerDirectDownload('${repo.id}')" class="w-full py-2 bg-orion-primary rounded-xl text-[10px] font-bold text-white text-center shadow-md transition active:scale-95 cursor-pointer">GET DOWNLOAD</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.addEventListener('online', handleConnectionChange);
+        window.addEventListener('offline', handleConnectionChange);
+
+        function handleConnectionChange() {
+            const offlineBadge = document.getElementById('offlineBadge');
+            const offlineView = document.getElementById('offlineView');
+            const storeView = document.getElementById('storeView');
+
+            if (!navigator.onLine) {
+                offlineBadge.classList.remove('hidden');
+                offlineBadge.classList.add('flex');
+                offlineView.classList.remove('hidden');
+                storeView.classList.add('hidden');
+                if(!gameRunning && !gameOver) {
+                    initDinoGame();
+                }
+            } else {
+                offlineBadge.classList.remove('flex');
+                offlineBadge.classList.add('hidden');
+                offlineView.classList.add('hidden');
+                storeView.classList.remove('hidden');
+            }
+        }
+
+        function checkConnectionAndReload() {
+            if (navigator.onLine) {
+                window.location.reload();
+            } else {
+                alert("You are still offline. Please check your internet connection.");
+            }
+        }
+
+        // 3D DINO GAME
+        let canvas, ctx;
+        let gameRunning = false;
+        let gameOver = false;
+        let score = 0;
+        let highScore = localStorage.getItem('dino_local_high_score') || 0;
+        let dino, obstacles = [], gameSpeed = 5, gravity = 0.65;
+        let roadOffset = 0;
+        let stars = [];
+
+        document.getElementById('highScore').innerText = String(highScore).padStart(5, '0');
+
+        function generateStars() {
+            stars = [];
+            for(let i = 0; i < 35; i++) {
+                stars.push({
+                    x: Math.random() * 600,
+                    y: Math.random() * 160,
+                    size: Math.random() * 1.5 + 0.5,
+                    alpha: Math.random() * 0.8 + 0.2
+                });
+            }
+        }
+
+        function initDinoGame() {
+            canvas = document.getElementById('dinoCanvas');
+            ctx = canvas.getContext('2d');
+            
+            dino = {
+                x: 60,
+                y: 170,
+                width: 32,
+                height: 38,
+                vy: 0,
+                jumpPower: -12,
+                grounded: true
+            };
+            obstacles = [];
+            score = 0;
+            gameSpeed = 5;
+            gameOver = false;
+            gameRunning = true;
+            roadOffset = 0;
+
+            generateStars();
+
+            document.getElementById('gameOverlay').style.opacity = '0';
+            document.getElementById('gameOverlay').style.pointerEvents = 'none';
+
+            requestAnimationFrame(updateDinoGame);
+        }
+
+        function triggerJump() {
+            if (!gameRunning || gameOver) {
+                initDinoGame();
+                return;
+            }
+            if (dino.grounded) {
+                dino.vy = dino.jumpPower;
+                dino.grounded = false;
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                if(!document.getElementById('offlineView').classList.contains('hidden')) {
+                    e.preventDefault();
+                    triggerJump();
+                }
+            }
+        });
+
+        function draw3DCube(x, y, w, h, depth, mainColor, topColor, sideColor) {
+            ctx.fillStyle = mainColor;
+            ctx.fillRect(x, y, w, h);
+
+            ctx.fillStyle = topColor;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + depth, y - depth);
+            ctx.lineTo(x + w + depth, y - depth);
+            ctx.lineTo(x + w, y);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = sideColor;
+            ctx.beginPath();
+            ctx.moveTo(x + w, y);
+            ctx.lineTo(x + w + depth, y - depth);
+            ctx.lineTo(x + w + depth, y + h - depth);
+            ctx.lineTo(x + w, y + h);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function updateDinoGame() {
+            if (!gameRunning) return;
+
+            dino.vy += gravity;
+            dino.y += dino.vy;
+
+            if (dino.y > 170) {
+                dino.y = 170;
+                dino.vy = 0;
+                dino.grounded = true;
+            }
+
+            if (Math.random() < 0.02 && (obstacles.length === 0 || obstacles[obstacles.length - 1].x < 380)) {
+                obstacles.push({
+                    x: 620,
+                    y: 175,
+                    width: 22 + Math.random() * 10,
+                    height: 32 + Math.random() * 16
+                });
+            }
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= gameSpeed;
+
+                if (
+                    dino.x < obstacles[i].x + obstacles[i].width &&
+                    dino.x + dino.width > obstacles[i].x &&
+                    dino.y < obstacles[i].y + obstacles[i].height &&
+                    dino.y + dino.height > obstacles[i].y
+                ) {
+                    gameOver = true;
+                    gameRunning = false;
+                    document.getElementById('gameOverlay').style.opacity = '1';
+                    document.getElementById('gameOverlay').style.pointerEvents = 'auto';
+                    document.getElementById('gameOverlay').innerHTML = `
+                        <span class="material-symbols-outlined text-4xl mb-1 text-rose-500">replay</span>
+                        <p class="text-sm font-extrabold">GAME OVER</p>
+                        <p class="text-[11px] text-slate-300 mt-1">Tap or press Space to Restart</p>
+                    `;
+                    return;
+                }
+
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    if (score > highScore) {
+                        highScore = score;
+                        localStorage.setItem('dino_local_high_score', highScore);
+                        document.getElementById('highScore').innerText = String(highScore).padStart(5, '0');
+                    }
+                    document.getElementById('currentScore').innerText = String(score).padStart(5, '0');
+                    if (score % 100 === 0) gameSpeed += 0.5;
+                }
+            }
+
+            roadOffset = (roadOffset + gameSpeed) % 40;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGrad.addColorStop(0, '#0f172a');
+            bgGrad.addColorStop(0.65, '#1e1b4b');
+            bgGrad.addColorStop(1, '#161926');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for(let s of stars) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+                ctx.fillRect(s.x, s.y, s.size, s.size);
+            }
+
+            ctx.fillStyle = 'rgba(99, 102, 241, 0.15)';
+            ctx.beginPath();
+            ctx.arc(520, 50, 30, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#c7d2fe';
+            ctx.beginPath();
+            ctx.arc(520, 50, 14, 0, Math.PI * 2);
+            ctx.fill();
+
+            const groundY = 202;
+            let trackGrad = ctx.createLinearGradient(0, groundY, 0, groundY + 48);
+            trackGrad.addColorStop(0, '#1e293b');
+            trackGrad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = trackGrad;
+            ctx.fillRect(0, groundY, 600, 48);
+
+            ctx.fillStyle = '#6366f1';
+            ctx.fillRect(0, groundY, 600, 2);
+
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+            ctx.lineWidth = 1.5;
+            for (let x = -roadOffset; x < 600; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, groundY);
+                ctx.lineTo(x - 20, groundY + 48);
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = 'rgba(129, 140, 248, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY + 20);
+            ctx.lineTo(600, groundY + 20);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.beginPath();
+            let shadowW = dino.width * (1 - Math.abs(170 - dino.y) / 120);
+            ctx.ellipse(dino.x + dino.width / 2, groundY, Math.max(shadowW / 2, 6), 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            let dinoY = dino.y - (dino.height - 35);
+            draw3DCube(dino.x, dinoY, dino.width, dino.height, 8, '#6366F1', '#818cf8', '#4f46e5');
+
+            draw3DCube(dino.x + 12, dinoY + 4, 16, 12, 6, '#38bdf8', '#7dd3fc', '#0284c7');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(dino.x + 22, dinoY + 8, 4, 4);
+
+            let legShift = Math.sin(Date.now() / 50) * 4;
+            if (!dino.grounded) legShift = 0;
+            ctx.fillStyle = '#3730a3';
+            ctx.fillRect(dino.x + 4, dinoY + dino.height, 6, 8 + legShift);
+            ctx.fillRect(dino.x + dino.width - 10, dinoY + dino.height, 6, 8 - legShift);
+
+            for (let obs of obstacles) {
+                let obsY = obs.y - (obs.height - 32);
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.beginPath();
+                ctx.ellipse(obs.x + obs.width / 2, groundY, obs.width / 1.8, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                draw3DCube(obs.x, obsY, obs.width, obs.height, 6, '#f43f5e', '#fb7185', '#e11d48');
+                
+                ctx.fillStyle = '#ffe4e6';
+                ctx.fillRect(obs.x + obs.width / 2 - 2, obsY + 4, 4, obs.height - 8);
+            }
+
+            requestAnimationFrame(updateDinoGame);
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem(THEME_KEY);
+            const html = document.documentElement;
+            const toggle = document.getElementById('iosToggle');
+
+            if (savedTheme === 'light') {
+                html.classList.remove('dark');
+                document.body.classList.remove('bg-[#0D0F17]');
+                document.body.classList.add('bg-slate-50');
+                toggle.classList.remove('on');
+                toggle.classList.add('off');
+                isDarkMode = false;
+            } else {
+                html.classList.add('dark');
+                document.body.classList.remove('bg-slate-50');
+                document.body.classList.add('bg-[#0D0F17]');
+                toggle.classList.remove('off');
+                toggle.classList.add('on');
+                isDarkMode = true;
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const toggle = document.getElementById('iosToggle');
+
+            if (isDarkMode) {
+                html.classList.remove('dark');
+                document.body.classList.remove('bg-[#0D0F17]');
+                document.body.classList.add('bg-slate-50');
+                toggle.classList.remove('on');
+                toggle.classList.add('off');
+                isDarkMode = false;
+                localStorage.setItem(THEME_KEY, 'light');
+            } else {
+                html.classList.add('dark');
+                document.body.classList.remove('bg-slate-50');
+                document.body.classList.add('bg-[#0D0F17]');
+                toggle.classList.remove('off');
+                toggle.classList.add('on');
+                isDarkMode = true;
+                localStorage.setItem(THEME_KEY, 'dark');
+            }
+        }
+
+        function refreshCurrentView() {
+            const refreshIcon = document.getElementById('refreshIcon');
+            refreshIcon.classList.add('animate-spin');
+            
+            const searchVal = document.getElementById('searchInput').value.trim();
+            if (searchVal) {
+                executeGlobalSearch(searchVal).then(() => {
+                    refreshIcon.classList.remove('animate-spin');
+                });
+            } else {
+                fetchAndRenderApps('android', 'ANDROID APPS').then(() => {
+                    refreshIcon.classList.remove('animate-spin');
+                });
+            }
+        }
+
+        window.addEventListener('scroll', () => {
+            const btn = document.getElementById('scrollTopBtn');
+            if (window.scrollY > 300) {
+                btn.classList.remove('opacity-0', 'pointer-events-none');
+                btn.classList.add('opacity-100', 'pointer-events-auto');
+            } else {
+                btn.classList.remove('opacity-100', 'pointer-events-auto');
+                btn.classList.add('opacity-0', 'pointer-events-none');
+            }
+        });
+
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+            return num ?? 0;
+        }
+
+        function setStatus(text, isLoading = false) {
+            document.getElementById('statusText').innerText = text;
+            const pulse = document.getElementById('statusPulse');
+            if (isLoading) {
+                pulse.classList.add('animate-ping');
+            } else {
+                pulse.classList.remove('animate-ping');
+            }
+        }
+
+        async function fetchGitHubData(query) {
+            try {
+                let res = await fetch(`https://api.github.com/search/repositories?q=${query}&sort=stars&order=desc&per_page=30`);
+                return await res.json();
+            } catch(e) {
+                return { items: [] };
+            }
+        }
+
+        async function fetchFDroidData(query) {
+            try {
+                let res = await fetch(`https://corsproxy.io/?https://search.f-droid.org/api/v1/search?q=${encodeURIComponent(query)}`);
+                if(res.ok) {
+                    let data = await res.json();
+                    if(data && data.packages) {
+                        return data.packages.map(pkg => ({
+                            id: pkg.packageName,
+                            name: pkg.name,
+                            description: pkg.summary || pkg.description || 'No description.',
+                            stargazers_count: 0,
+                            forks_count: 0,
+                            html_url: `https://f-droid.org/packages/${pkg.packageName}/`,
+                            owner: {
+                                login: pkg.packageName,
+                                avatar_url: pkg.icon ? `https://f-droid.org/repo/icons/${pkg.icon}` : 'https://i.postimg.cc/qBGFpD6Z/ALEX-JAMES-GITHUB.png'
+                            },
+                            isFDroid: true
+                        }));
+                    }
+                }
+            } catch(e) {}
+            return [];
+        }
+
+        async function fetchAndRenderApps(type, statusLabel) {
+            showSkeleton();
+            showSearchSpinner();
+            setStatus("SEARCHING APPS...", true);
+
+            let searchQuery = 'topic:android-app+stars:>20';
+            if (type === 'win') {
+                searchQuery = 'topic:windows-app+stars:>10';
+            } else if (type === 'tv') {
+                searchQuery = 'topic:android-tv+stars:>5';
+            }
+
+            try {
+                const data = await fetchGitHubData(searchQuery);
+                if (data.items && data.items.length > 0) {
+                    currentLoadedRepos = data.items;
+                    setStatus(statusLabel);
+                    updateFeatured(data.items[0]);
+                    renderGrid(data.items.slice(1));
+                } else {
+                    setStatus("NO APPS FOUND");
+                    document.getElementById('featuredSection').classList.add('hidden');
+                    document.getElementById('repoGrid').innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 dark:text-orion-subtext">No applications found. Try searching manually.</div>`;
+                }
+            } finally {
+                hideSearchSpinner();
+            }
+        }
+
+        async function executeGlobalSearch(customQuery = null) {
+            const userQuery = customQuery || document.getElementById('searchInput').value.trim();
+            if (!userQuery) return;
+
+            localStorage.setItem(LAST_SEARCH_KEY, userQuery);
+            document.getElementById('searchInput').value = userQuery;
+            handleSearchInput(userQuery);
+
+            showSkeleton();
+            showSearchSpinner();
+            setStatus("SEARCHING WORLDWIDE...", true);
+
+            try {
+                const [ghData, fdroidItems] = await Promise.all([
+                    fetchGitHubData(`${encodeURIComponent(userQuery)}+in:name,description,topics`),
+                    fetchFDroidData(userQuery)
+                ]);
+
+                let combinedItems = [];
+                if(fdroidItems && fdroidItems.length > 0) {
+                    combinedItems = combinedItems.concat(fdroidItems);
+                }
+                if(ghData.items && ghData.items.length > 0) {
+                    combinedItems = combinedItems.concat(ghData.items);
+                }
+
+                if (combinedItems.length > 0) {
+                    currentLoadedRepos = combinedItems;
+                    setStatus(`${combinedItems.length} APPS FOUND`);
+                    
+                    updateFeatured(combinedItems[0]);
+                    renderGrid(combinedItems.slice(1)); 
+                } else {
+                    setStatus("NO APPS FOUND");
+                    document.getElementById('featuredSection').classList.add('hidden');
+                    document.getElementById('repoGrid').innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 dark:text-orion-subtext">No apps found. Try another global term.</div>`;
+                }
+            } catch (err) {
+                showError("Search failed. Please try again.");
+            } finally {
+                hideSearchSpinner();
+            }
+        }
+
+        function updateFeatured(repo) {
+            const featSec = document.getElementById('featuredSection');
+            featSec.classList.remove('hidden');
+            
+            document.getElementById('featuredTitle').innerText = repo.name;
+            document.getElementById('featuredDesc').innerText = repo.description || 'No description provided.';
+            document.getElementById('featuredStars').innerHTML = `<span class="material-symbols-outlined text-sm">star</span> ${formatNumber(repo.stargazers_count)}`;
+            
+            const featBtn = document.getElementById('featuredBtn');
+            featBtn.onclick = () => {
+                currentSelectedRepo = repo;
+                openReleaseModal(repo);
+            };
+
+            const img = document.getElementById('featuredImg');
+            if (repo.owner && repo.owner.avatar_url) {
+                img.src = repo.owner.avatar_url;
+                img.classList.remove('hidden');
+            }
+
+            const savedApps = getSavedApps();
+            const isSaved = savedApps.some(s => String(s.id) === String(repo.id));
+            
+            const saveBtn = document.getElementById('featuredSaveBtn');
+            const icon = document.getElementById('featuredBookmarkIcon');
+            
+            if(isSaved) {
+                icon.innerText = 'bookmark_remove';
+                saveBtn.classList.add('text-amber-400');
+                saveBtn.classList.remove('text-slate-400');
+            } else {
+                icon.innerText = 'bookmark_add';
+                saveBtn.classList.remove('text-amber-400');
+                saveBtn.classList.add('text-slate-400');
+            }
+
+            saveBtn.onclick = (e) => {
+                e.stopPropagation();
+                toggleSaveApp(repo.id);
+            };
+
+            document.getElementById('featuredCard').onclick = () => openAppInfo(repo.id);
+        }
+
+        function triggerDirectDownload(repoId) {
+            const repo = currentLoadedRepos.find(r => String(r.id) === String(repoId)) || getSavedApps().find(r => String(r.id) === String(repoId));
+            if (repo) {
+                currentSelectedRepo = repo;
+                openReleaseModal(repo);
+            }
+        }
+
+        function renderGrid(repos) {
+            const grid = document.getElementById('repoGrid');
+            const savedApps = getSavedApps();
+
+            grid.innerHTML = repos.map((repo) => {
+                const logoUrl = repo.owner ? repo.owner.avatar_url : '';
+                const isSaved = savedApps.some(s => String(s.id) === String(repo.id));
+
+                return `
+                    <div onclick="openAppInfo('${repo.id}')" class="ios-card p-4 rounded-3xl flex flex-col items-center text-center justify-between bg-slate-100 dark:bg-orion-surface border border-slate-200 dark:border-white/5 cursor-pointer group relative">
+                        
+                        <button onclick="event.stopPropagation(); toggleSaveApp('${repo.id}')" class="absolute top-3 right-3 ${isSaved ? 'text-amber-400' : 'text-slate-400'} hover:text-amber-400 transition active:scale-90">
+                            <span class="material-symbols-outlined text-xl">${isSaved ? 'bookmark_remove' : 'bookmark_add'}</span>
+                        </button>
+
+                        <div class="w-14 h-14 rounded-2xl bg-slate-200 dark:bg-orion-surfaceVariant p-1 flex items-center justify-center mb-2 overflow-hidden border border-slate-300 dark:border-white/10 shadow-inner group-hover:border-orion-primary/50 transition">
+                            <img src="${logoUrl}" class="w-full h-full object-cover rounded-xl" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/github/explore/main/topics/github/github.png';">
+                        </div>
+                        <div class="w-full">
+                            <h4 class="font-bold text-sm text-slate-900 dark:text-white truncate w-full" title="${repo.name}">${repo.name}</h4>
+                            <p class="text-[11px] text-slate-500 dark:text-orion-subtext truncate w-full mt-0.5">${repo.owner ? repo.owner.login : ''}</p>
+                        </div>
+                        <div class="flex items-center gap-1 my-2 text-[11px] text-amber-500 dark:text-amber-400 font-bold">
+                            <span class="material-symbols-outlined text-sm">star</span> ${formatNumber(repo.stargazers_count)}
+                        </div>
+                        <div class="w-full flex gap-1.5 mt-1" onclick="event.stopPropagation()">
+                            <button onclick="openAppInfo('${repo.id}')" class="flex-1 py-2 bg-slate-200 dark:bg-white/5 hover:bg-slate-300 dark:hover:bg-white/10 rounded-xl text-[10px] font-bold text-slate-700 dark:text-orion-subtext text-center border border-slate-300 dark:border-white/5 transition active:scale-95">INFO</button>
+                            <button onclick="triggerDirectDownload('${repo.id}')" class="flex-1 py-2 bg-orion-primary rounded-xl text-[10px] font-bold text-white text-center shadow-md transition active:scale-95 cursor-pointer flex items-center justify-center">GET</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function copyUsername(username) {
+            navigator.clipboard.writeText(username).then(() => {
+                const btn = document.getElementById('copyUserBtn');
+                if(btn) {
+                    btn.innerText = 'done';
+                    setTimeout(() => { btn.innerText = 'content_copy'; }, 2000);
+                }
+            });
+        }
+
+        function openAppInfo(repoId) {
+            const repo = currentLoadedRepos.find(r => String(r.id) === String(repoId)) || getSavedApps().find(r => String(r.id) === String(repoId));
+            if (!repo) return;
+
+            currentSelectedRepo = repo;
+            const username = repo.owner ? repo.owner.login : '';
+            const profileUrl = repo.isFDroid ? repo.html_url : `https://github.com/${username}`;
+
+            document.getElementById('modalTitle').innerText = repo.name;
+            
+            if (repo.isFDroid) {
+                document.getElementById('modalOwner').innerHTML = `<span>F-Droid Package</span>`;
+            } else {
+                document.getElementById('modalOwner').innerHTML = `
+                    <span>Created by</span>
+                    <span onclick="window.open('${profileUrl}', '_blank')" class="text-orion-primary font-bold hover:underline cursor-pointer">@${username}</span>
+                    <button id="copyUserBtn" onclick="copyUsername('${username}')" title="Copy Username" class="material-symbols-outlined text-xs text-slate-400 hover:text-white ml-0.5 active:scale-90 transition">
+                        content_copy
+                    </button>
+                `;
+            }
+
+            document.getElementById('modalDesc').innerText = repo.description || 'No description provided.';
+            document.getElementById('modalIcon').src = repo.owner ? repo.owner.avatar_url : '';
+            
+            const starsCount = repo.stargazers_count ?? 0;
+            const forksCount = repo.forks_count ?? repo.forks ?? 0;
+
+            document.getElementById('modalStars').innerHTML = `<span class="material-symbols-outlined text-sm">star</span> ${formatNumber(starsCount)} Rating`;
+            document.getElementById('modalForks').innerHTML = `<span class="material-symbols-outlined text-sm">call_split</span> ${formatNumber(forksCount)} Forks`;
+            
+            const repoBtn = document.getElementById('modalRepoBtn');
+            repoBtn.setAttribute('data-url', repo.html_url);
+
+            const modal = document.getElementById('appInfoModal');
+            const sheet = document.getElementById('appInfoSheet');
+
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            sheet.classList.remove('translate-y-full');
+        }
+
+        function closeAppInfo() {
+            const modal = document.getElementById('appInfoModal');
+            const sheet = document.getElementById('appInfoSheet');
+
+            sheet.classList.add('translate-y-full');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function showSkeleton() {
+            document.getElementById('repoGrid').innerHTML = Array(4).fill(0).map(() => `<div class="bg-slate-200 dark:bg-orion-surface p-5 rounded-3xl animate-pulse h-48 border border-white/5"></div>`).join('');
+        }
+
+        function showError(msg) {
+            setStatus("NOTICE");
+            document.getElementById('repoGrid').innerHTML = `<div class="col-span-full text-center py-10 text-amber-500 font-medium">${msg}</div>`;
+        }
+
+        function switchCategory(type, queryType, statusLabel, btnElement) {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = "nav-btn nav-btn-inactive px-4 py-2.5 rounded-full text-slate-700 dark:text-orion-subtext hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2 text-xs font-bold";
+            });
+
+            btnElement.className = "nav-btn nav-btn-active px-5 py-2.5 rounded-full transition flex items-center gap-2 text-xs font-extrabold";
+
+            const storeView = document.getElementById('storeView');
+            const profileView = document.getElementById('profileView');
+            const savedView = document.getElementById('savedView');
+
+            if (type === 'dev') {
+                storeView.classList.add('hidden');
+                savedView.classList.add('hidden');
+                profileView.classList.remove('hidden');
+            } else if (type === 'saved') {
+                storeView.classList.add('hidden');
+                profileView.classList.add('hidden');
+                savedView.classList.remove('hidden');
+                renderSavedApps();
+            } else {
+                profileView.classList.add('hidden');
+                savedView.classList.add('hidden');
+                storeView.classList.remove('hidden');
+
+                document.getElementById('searchInput').value = '';
+                handleSearchInput('');
+                fetchAndRenderApps(queryType, statusLabel);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            handleConnectionChange();
+
+            if (navigator.onLine) {
+                const savedSearch = localStorage.getItem(LAST_SEARCH_KEY);
+                if (savedSearch) {
+                    document.getElementById('searchInput').value = savedSearch;
+                    handleSearchInput(savedSearch);
+                    executeGlobalSearch(savedSearch);
+                } else {
+                    fetchAndRenderApps('android', 'ANDROID APPS');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
