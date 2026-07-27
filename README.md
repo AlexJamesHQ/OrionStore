@@ -1,44 +1,132 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- PWA Meta Tags -->
-  <meta name="theme-color" content="#000000">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ΛLΞX JΛMΞS">
-  <link rel="apple-touch-icon" href="https://i.postimg.cc/qBGFpD6Z/ALEX-JAMES-GITHUB.png">
-  <meta name="msapplication-TileImage" content="https://i.postimg.cc/qBGFpD6Z/ALEX-JAMES-GITHUB.png">
-  <meta name="msapplication-TileColor" content="#000000">
-  <meta property="og:image" content="https://i.postimg.cc/qBGFpD6Z/ALEX-JAMES-GITHUB.png">
-  <meta name="twitter:image" content="https://i.postimg.cc/qBGFpD6Z/ALEX-JAMES-GITHUB.png">
-  <meta name="description" content="ΛLΞX JΛMΞS ᗪEV - UI/UX, Web/App Development, 3D & Branding Agency">
-  <meta property="og:title" content="ΛLΞX JΛMΞS ᗪEV">
-  <meta property="og:description" content="UI/UX, Web/App Development, 3D & Branding Agency">
-  <meta name="twitter:card" content="summary_large_image">
-  <link rel="manifest" href="manifest.json">
-</head>
-<body>
+<div align="center">
 
-<!-- GitHub Logo at the top -->
-<p align="center">
-  <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="40" height="40">
+# 🚀 OrionStore
+
+### Open Source for Everyone.
+
+*A modern Material 3 Expressive application store powered by GitHub & F-Droid.*
+
+<p>
+<img width="228" height="228" alt="1000178228" src="https://github.com/user-attachments/assets/60aba46e-bed4-41d5-9f09-8d60f3878d84" />
+<img width="720" height="1612" alt="1000178396" src="https://github.com/user-attachments/assets/2d4b5280-5bf7-4ed7-bf1d-d9bbbc5ab3ad" />
+<img width="720" height="1612" alt="1000178397" src="https://github.com/user-attachments/assets/8a93224e-69e7-4100-bff1-1931f28b0cb8" />
+<img width="720" height="1612" alt="1000178398" src="https://github.com/user-attachments/assets/420fc558-b1ed-4b12-a15c-a1ee622b76b9" />
+<img width="1432" height="1656" alt="1000178399" src="https://github.com/user-attachments/assets/740bedb6-2de3-42b2-a808-6c2c3d630704" />
+
+
+
+
 </p>
 
-<h1 align="center">Hi 👋, I'm ΛLΞX JΛMΞS ᗪEV</h1>
-<h3 align="center">ΛLΞX|UI/υX, Web/App Development, 3D & Branding Agency</h3>
+</div>
 
-- 📫 Reach me on: **alexjames7830@gmail.com**
-- 💻 GitHub Portfolio: **http://alex-james.vercel.app**
-- 📄 projects:OrionStore is an open-source app discovery platform that helps users explore, search, and download Android, Windows, and Web applications from public repositories. It features a clean Material 3 Expressive interface, fast search, offline support with a built-in mini game, local favorites, dark mode, and seamless access to GitHub releases. The project is completely open source, allowing everyone to use, modify, and contribute.
-<p align="center">
-  <img width="228" height="228" alt="1000178228" src="https://github.com/user-attachments/assets/aa5f9a2b-8ce4-407d-a587-0e3e388e7fd5" />
-  <img width="720" height="1612" alt="1000178375" src="https://github.com/user-attachments/assets/8475ed4b-c2c4-45e2-a948-58d6d46a682d" />
-  <img width="720" height="1612" alt="1000178376" src="https://github.com/user-attachments/assets/378d38f8-9595-420b-8865-4524738aad71" />
-  <img width="720" height="1612" alt="1000178377" src="https://github.com/user-attachments/assets/37c0aad1-b194-48af-a555-0da7a70d184b" />
-  <img width="1432" height="1656" alt="1000178374" src="https://github.com/user-attachments/assets/40e4b723-1c3b-4833-9fcf-76d7b295659f" />
+---
 
+# 🌟 What is OrionStore?
 
+OrionStore is a modern, fast, and beautiful open-source application store built for discovering apps from GitHub and F-Droid.
 
+Instead of browsing multiple websites, OrionStore lets users search, explore, save, and download applications from one elegant interface.
+
+Designed with **Material 3 Expressive**, smooth animations, and offline capabilities, OrionStore delivers a premium user experience while remaining completely open source.
+
+---
+
+# ✨ Features
+
+- 🔍 Lightning-fast search
+- 📦 GitHub Releases integration
+- 🌍 F-Droid repository support
+- ❤️ Save favorite apps
+- 📱 Material 3 Expressive Design
+- 🎨 Beautiful animations
+- 🌙 Dark mode
+- 📶 Offline support
+- 🎮 Built-in Dino Game
+- 🚀 Optimized performance
+- 📲 Progressive Web App (PWA)
+- 🔓 Completely Open Source
+
+---
+
+# 🖼️ Screenshots
+
+> Add your screenshots here.
+
+```
+Home
+
+Search
+
+App Details
+
+Downloads
+
+Settings
+```
+
+---
+
+# 🛠️ Technologies
+
+- HTML5
+- CSS3
+- JavaScript
+- GitHub REST API
+- F-Droid API
+- Material 3 Expressive
+- Progressive Web App (PWA)
+
+---
+
+# 📂 Project Structure
+
+```text
+OrionStore
+├── index.html
+├── style.css
+├── script.js
+├── manifest.json
+├── sw.js
+└── assets/
+```
+
+---
+
+# 🎯 Mission
+
+> **Open Source for Everyone.**
+
+Our mission is to make discovering open-source software simple, fast, beautiful, and accessible for everyone.
+
+---
+
+# 🤝 Contributing
+
+Contributions are always welcome.
+
+Feel free to Fork, Improve, and Submit a Pull Request.
+
+---
+
+# ⭐ Support
+
+If you like OrionStore, don't forget to leave a ⭐ on GitHub.
+
+It helps the project grow.
+
+---
+
+# 📄 License
+
+Licensed under the **MIT License**.
+
+---
+
+<div align="center">
+
+## Made with ❤️ by ΛLΞX JΛMΞS
+
+### Open Source • Material 3 Expressive • Fast • Beautiful
+
+</div>
