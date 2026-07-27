@@ -31,7 +31,7 @@
 <h3 align="center">ΛLΞX|UI/υX, Web/App Development, 3D & Branding Agency</h3>
 
 - 📫 Reach me on: **alexjames7830@gmail.com**
-- 💻 GitHub Portfolio: **https://alexjameshq.github.io/PORTFOLIO**
+- 💻 GitHub Portfolio: **http://alex-james.vercel.app**
 
 <a href="https://www.facebook.com/share/1BibjbqQS6/">
 <img src="https://img.shields.io/badge/Facebook-%231877F2.svg?style=for-the-badge&logo=Facebook&logoColor=white">
@@ -45,8 +45,7 @@
 </a>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <a href="https://www.youtube.com/@ALEX-JAMES-8504">
-<img src="https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white">
-</a>
+<img src="https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white"
 
 <p align="center">
   <picture align="center">
