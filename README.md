@@ -30,7 +30,7 @@
 
   <p>
      📫 Reach me on: <b>alexjames7830@gmail.com</b><br>
-     💻 GitHub Portfolio: <b><a href="http://alex-james.vercel.app" target="_blank">ΛLΞX JΛMΞS ᗪEV</a></b>
+     💻 Portfolio: <b><a href="http://alex-james.vercel.app" target="_blank">ΛLΞX JΛMΞS ᗪEV</a></b>
   </p>
 
   <!-- Social Badges -->
