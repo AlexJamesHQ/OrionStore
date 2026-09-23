@@ -1,0 +1,178 @@
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Minimalist Neobrutalist Cream Grid */
+.bg-cream-grid {
+  background-color: #FAF6EE;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-cream-grid-dense {
+  background-color: #FAF6EE;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+/* Subtle desktop studio backdrop */
+.bg-studio-dots {
+  background-color: #ECE7DC;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.12) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* Neobrutalist Hard Shadows */
+.brutal-shadow-sm {
+  box-shadow: 2px 2px 0px #000000;
+}
+
+.brutal-shadow {
+  box-shadow: 3px 3px 0px #000000;
+}
+
+.brutal-shadow-md {
+  box-shadow: 4px 4px 0px #000000;
+}
+
+.brutal-shadow-lg {
+  box-shadow: 6px 6px 0px #000000;
+}
+
+.brutal-shadow-xl {
+  box-shadow: 8px 8px 0px #000000;
+}
+
+/* Smooth Entrance & Interactive Animations */
+@keyframes fadeInSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes subtlePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes badgeShine {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pop-in {
+  animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-subtle {
+  animation: subtlePulse 2.8s ease-in-out infinite;
+}
+
+.animate-badge-glow {
+  animation: badgeShine 2s ease-in-out infinite;
+}
+
+.card-hover-effect {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+
+.card-hover-effect:hover {
+  transform: translateY(-2px);
+  box-shadow: 5px 5px 0px #000000;
+}
+
+.card-hover-effect:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px #000000;
+}
+
+/* Butterfly Gentle Flutter Animation */
+@keyframes butterfly-breathe {
+  0%, 100% {
+    transform: rotate(var(--rot, 0deg)) scale(1);
+  }
+  50% {
+    transform: rotate(calc(var(--rot, 0deg) + 3deg)) scale(1.04);
+  }
+}
+
+@keyframes wing-flutter {
+  0%, 100% {
+    transform: scaleX(1);
+  }
+  25% {
+    transform: scaleX(0.78);
+  }
+  50% {
+    transform: scaleX(0.95);
+  }
+  75% {
+    transform: scaleX(0.72);
+  }
+}
+
+.animate-flutter {
+  animation: butterfly-breathe 4s ease-in-out infinite;
+}
+
+.hover-wing-flap:hover {
+  animation: wing-flutter 0.35s ease-in-out infinite;
+}
+
+/* Mobile Scrollbar */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Neobrutalist custom scrollbar */
+.brutal-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.brutal-scroll::-webkit-scrollbar-track {
+  background: #FAF6EE;
+  border-left: 1px solid #000000;
+}
+.brutal-scroll::-webkit-scrollbar-thumb {
+  background: #000000;
+  border-radius: 0px;
+}
+.brutal-scroll::-webkit-scrollbar-thumb:hover {
+  background: #FFE600;
+}

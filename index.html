@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🐾 OrionStore Paw — GitHub APK App Store</title>
+    <meta name="description" content="OrionStore Paw - Advanced live GitHub APK App Store, client updates installer, and real-time package synced explorer." />
+    <meta property="og:title" content="🐾 OrionStore Paw — GitHub APK App Store" />
+    <meta property="og:description" content="OrionStore Paw - Advanced live GitHub APK App Store, client updates installer, and real-time package synced explorer." />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#FFE600" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" type="image/png" href="https://avatars.githubusercontent.com/u/169815417?v=4" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+            },
+            colors: {
+              brutal: {
+                yellow: '#FFE600',
+                cream: '#FAF6EE',
+                purple: '#7C3AED',
+                darkpurple: '#6B21A8',
+                orange: '#FF5E00',
+                brightorange: '#F97316',
+                border: '#000000',
+              }
+            },
+            boxShadow: {
+              'brutal-sm': '2px 2px 0px #000000',
+              'brutal': '3px 3px 0px #000000',
+              'brutal-md': '4px 4px 0px #000000',
+              'brutal-lg': '6px 6px 0px #000000',
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="/index.css">
+  </head>
+  <body class="bg-[#ECE8DE] text-black antialiased font-sans selection:bg-[#FFE600] selection:text-black">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
