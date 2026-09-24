@@ -71,6 +71,18 @@ export const InAppDownloadModal: React.FC<InAppDownloadModalProps> = ({ isOpen, 
   const [downloadSpeed, setDownloadSpeed] = useState('3.2 MB/s');
   const timerRef = useRef<any>(null);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
   // Reset state on open/info change
   useEffect(() => {
     if (isOpen) {

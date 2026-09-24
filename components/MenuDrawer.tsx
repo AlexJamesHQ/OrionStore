@@ -42,6 +42,17 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   onOpenUpdate,
   hasUpdate = false,
 }) => {
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   // The profile inside settings always represents the developer: Alex James

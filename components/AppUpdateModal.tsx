@@ -71,6 +71,17 @@ export const AppUpdateModal: React.FC<AppUpdateModalProps> = ({
   const [downloadingUrl, setDownloadingUrl] = useState<string | null>(null);
   const [downloadedUrl, setDownloadedUrl] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleCopy = (url: string) => {
@@ -172,7 +183,7 @@ export const AppUpdateModal: React.FC<AppUpdateModalProps> = ({
         </div>
 
         {/* Content - releases with Date & Time */}
-        <div className="flex-1 overflow-y-auto brutal-scroll pr-1 space-y-3">
+        <div className="flex-1 overflow-y-auto overscroll-contain brutal-scroll pr-1 space-y-3">
           {isChecking ? (
             <div className="py-14 text-center">
               <RefreshCw className="w-8 h-8 animate-spin mx-auto text-black mb-3" />

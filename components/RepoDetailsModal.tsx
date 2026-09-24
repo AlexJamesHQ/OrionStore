@@ -66,6 +66,17 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
   const [readingProgress, setReadingProgress] = useState(0);
 
   useEffect(() => {
+    if (repo) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [repo]);
+
+  useEffect(() => {
     if (!repo) return;
     setReadme(null);
     setLoadingReadme(true);
