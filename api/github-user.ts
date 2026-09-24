@@ -1,4 +1,3 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ALEX_PUBLIC_REPOSITORIES, INITIAL_REPOSITORIES, DEFAULT_USER_PROFILE } from '../data/sampleRepos';
 import { hasActualApk } from '../types';
 
