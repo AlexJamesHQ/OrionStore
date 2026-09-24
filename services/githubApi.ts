@@ -1,18 +1,4 @@
 import { Repository, GitHubUserProfile, hasActualApk } from '../types';
-import {
-  DEFAULT_USER_PROFILE,
-  INITIAL_REPOSITORIES,
-  ALEX_PUBLIC_REPOSITORIES,
-  USER_4NX3B_DATA,
-} from '../data/sampleRepos';
-
-const KNOWN_APK_MAP = new Map<string, any>();
-[...ALEX_PUBLIC_REPOSITORIES, ...INITIAL_REPOSITORIES].forEach((r) => {
-  if (r.latestRelease && (r.latestRelease.apkName || r.latestRelease.downloadUrl)) {
-    KNOWN_APK_MAP.set(r.name.toLowerCase(), r.latestRelease);
-    if (r.full_name) KNOWN_APK_MAP.set(r.full_name.toLowerCase(), r.latestRelease);
-  }
-});
 
 export function enrichWithApkAndCategory(r: Repository): Repository {
   const verifiedRelease =
@@ -167,7 +153,10 @@ export async function fetchGitHubUserData(input: string, fresh: boolean = true):
     const isJson = srvRes.ok && (srvRes.headers.get('content-type') || '').includes('application/json');
     if (isJson) {
       const data: UserFullData = await srvRes.json();
-      if (data && (data.publicRepos?.length > 0 || data.starredRepos?.length > 0 || data.profile)) {
+      // Do not accept a profile-only response as success: an API failure can still return profile data.
+      // Fall through to the direct GitHub API when repository arrays are empty for a non-default user.
+      const hasRepositoryData = (data.publicRepos?.length || 0) > 0 || (data.starredRepos?.length || 0) > 0;
+      if (data && (hasRepositoryData || data.profile?.login)) {
         data.publicRepos = (data.publicRepos || []).map(enrichWithApkAndCategory);
         data.starredRepos = (data.starredRepos || []).map(enrichWithApkAndCategory);
         localStorage.setItem(cacheKey, JSON.stringify(data));
@@ -221,58 +210,44 @@ export async function fetchGitHubUserData(input: string, fresh: boolean = true):
       };
     }
 
-    let publicRepos: Repository[] = [];
-    try {
-      const pubRes = await fetch(
-        `https://api.github.com/users/${encodeURIComponent(cleanUser)}/repos?per_page=100&sort=updated`,
-        { headers: clientHeaders }
-      );
-      if (pubRes.ok) {
-        const pData = await pubRes.json();
-        if (Array.isArray(pData)) {
-          publicRepos = pData.map(mapApiRepo);
-        }
+    const fetchAllPages = async (kind: 'repos' | 'starred'): Promise<any[]> => {
+      const all: any[] = [];
+      for (let page = 1; page <= 10; page += 1) {
+        const url = kind === 'repos'
+          ? `https://api.github.com/users/${encodeURIComponent(cleanUser)}/repos?per_page=100&page=${page}&sort=updated&type=owner`
+          : `https://api.github.com/users/${encodeURIComponent(cleanUser)}/starred?per_page=100&page=${page}`;
+        const response = await fetch(url, { headers: clientHeaders });
+        if (!response.ok) break;
+        const pageData = await response.json();
+        if (!Array.isArray(pageData) || pageData.length === 0) break;
+        all.push(...pageData);
+        if (pageData.length < 100) break;
       }
-    } catch (e) {}
+      return all;
+    };
 
+    let publicRepos: Repository[] = [];
     let starredRepos: Repository[] = [];
     try {
-      const starRes = await fetch(
-        `https://api.github.com/users/${encodeURIComponent(cleanUser)}/starred?per_page=100`,
-        { headers: clientHeaders }
-      );
-      if (starRes.ok) {
-        const sData = await starRes.json();
-        if (Array.isArray(sData)) {
-          starredRepos = sData.map(mapApiRepo);
-        }
-      }
+      const [pubData, starData] = await Promise.all([
+        fetchAllPages('repos'),
+        fetchAllPages('starred'),
+      ]);
+      publicRepos = pubData.map(mapApiRepo);
+      starredRepos = starData.map(mapApiRepo);
     } catch (e) {}
 
-    const isAlex = cleanUser.toLowerCase() === 'alexjameshq';
-
-    // If client API hit rate limit or returned empty for AlexJamesHQ, use authentic verified repositories
-    const finalPublic = (publicRepos.length > 0) ? publicRepos : (isAlex ? ALEX_PUBLIC_REPOSITORIES : []);
-    const finalStarred = (starredRepos.length > 0) ? starredRepos : (isAlex ? INITIAL_REPOSITORIES : []);
+    const finalPublic = publicRepos;
+    const finalStarred = starredRepos;
 
     const enrichedPublic = finalPublic.map(enrichWithApkAndCategory);
     const enrichedStarred = finalStarred.map(enrichWithApkAndCategory);
 
-    const finalProfile = isAlex
-      ? {
-          ...DEFAULT_USER_PROFILE,
-          name: profile.name || DEFAULT_USER_PROFILE.name,
-          bio: profile.bio || DEFAULT_USER_PROFILE.bio,
-          public_repos: profile.public_repos || enrichedPublic.length || DEFAULT_USER_PROFILE.public_repos,
-          starred_count: profile.starred_count || enrichedStarred.length || DEFAULT_USER_PROFILE.starred_count,
-          followers: typeof profile.followers === 'number' && profile.followers > 0 ? profile.followers : DEFAULT_USER_PROFILE.followers,
-          following: typeof profile.following === 'number' && profile.following > 0 ? profile.following : DEFAULT_USER_PROFILE.following,
-        }
-      : {
-          ...profile,
-          public_repos: profile.public_repos || enrichedPublic.length,
-          starred_count: profile.starred_count || enrichedStarred.length,
-        };
+    const finalProfile = {
+      ...profile,
+      public_repos: typeof profile.public_repos === 'number' ? profile.public_repos : enrichedPublic.length,
+      starred_count: enrichedStarred.length,
+    };
 
     const result = {
       profile: finalProfile,
@@ -284,17 +259,6 @@ export async function fetchGitHubUserData(input: string, fresh: boolean = true):
     localStorage.setItem(cacheKey, JSON.stringify(result));
     return result;
   } catch (e) {
-    const isAlex = cleanUser.toLowerCase() === 'alexjameshq';
-    if (isAlex) {
-      return {
-        profile: DEFAULT_USER_PROFILE,
-        publicRepos: ALEX_PUBLIC_REPOSITORIES,
-        starredRepos: INITIAL_REPOSITORIES,
-        publicCount: ALEX_PUBLIC_REPOSITORIES.length,
-        starredCount: INITIAL_REPOSITORIES.length,
-      };
-    }
-
     // Return cached if available even on error
     const cached = localStorage.getItem(cacheKey);
     if (cached) return JSON.parse(cached);
