@@ -1,4 +1,4 @@
-# SwiftSlate GitHub Repository & Android APK Hub
+# GitHub Repository & Android APK Hub
 
 A high-performance repository explorer and Android application distribution platform designed with a modern Neobrutalist aesthetic. Built with React, TypeScript, Tailwind CSS, Framer Motion, and Node.js.
 
