@@ -7,5 +7,4 @@ export { AppUpdateModal } from './AppUpdateModal';
 export { InAppDownloadModal, type InAppDownloadInfo } from './InAppDownloadModal';
 export { LogoLoop } from './LogoLoop';
 export { FlipCard } from './FlipCard';
-export { EchoText } from './EchoText';
 export { GitHubIcon, StarIcon } from './Icons';
