@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Repository } from '../types';
-import { X, ExternalLink, Copy, Check, Terminal, Download, Package } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Repository, hasActualApk } from '../types';
+import {
+  X,
+  ExternalLink,
+  Copy,
+  Check,
+  Terminal,
+  Download,
+  Package,
+  ArrowDown,
+  Sparkles,
+  CheckCircle2,
+} from 'lucide-react';
 import { formatCompactNumber, formatFileSize } from '../services/githubApi';
 import { StarIcon } from './Icons';
 
@@ -47,6 +59,7 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
   const [cloneProtocol, setCloneProtocol] = useState<'https' | 'ssh'>('https');
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadCompleted, setDownloadCompleted] = useState(false);
   const [readme, setReadme] = useState<string | null>(null);
   const [loadingReadme, setLoadingReadme] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -101,41 +114,50 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
   const handleDownloadApk = (downloadUrl: string, apkName: string) => {
     if (!downloadUrl) return;
     setDownloading(true);
-    setDownloadProgress(15);
+    setDownloadCompleted(false);
+    setDownloadProgress(10);
 
     const interval = setInterval(() => {
       setDownloadProgress((prev) => {
-        if (prev >= 95) {
+        if (prev >= 92) {
           clearInterval(interval);
-          return 95;
+          return 92;
         }
-        return prev + 25;
+        return prev + Math.floor(Math.random() * 18) + 12;
       });
-    }, 200);
+    }, 150);
 
     setTimeout(() => {
       clearInterval(interval);
       setDownloadProgress(100);
-      window.location.href = downloadUrl;
+      setDownloadCompleted(true);
+
+      // Safe anchor download trigger without navigating away
+      try {
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = apkName || `${repo.name}.apk`;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch {
+        window.open(downloadUrl, '_blank');
+      }
+
       setTimeout(() => {
         setDownloading(false);
-        setDownloadProgress(0);
-      }, 1500);
-    }, 1200);
+      }, 1600);
+    }, 1300);
   };
 
-  const isApkRepo =
-    Boolean(repo.latestRelease) ||
-    repo.category === 'Android & APK' ||
-    Boolean(repo.topics?.some((t) => t.toLowerCase().includes('apk'))) ||
-    Boolean(repo.description?.toLowerCase().includes('apk')) ||
-    ['archivetune', 'nuviomobile', 'koda', 'clockyou', 'rustdesk', 'android-titanium-browser', 'microg-ungoogled-chromium', 'kurodo'].includes(
-      repo.name.toLowerCase()
-    );
-
+  // Genuine APK release or fallback for Android/APK repos
   const apkRelease =
-    repo.latestRelease ||
-    (isApkRepo
+    (repo.latestRelease && (repo.latestRelease.apkName || repo.latestRelease.downloadUrl)
+      ? repo.latestRelease
+      : null) ||
+    (hasActualApk(repo)
       ? {
           tagName: 'Latest APK',
           name: `${repo.name} Android Package`,
@@ -228,31 +250,92 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
               </div>
             </div>
 
-            {/* Realistic Download Progress Bar */}
-            {downloading && (
-              <div className="bg-white border-2 border-black rounded-xl p-3 shadow-[2px_2px_0px_#000] animate-pulse">
-                <div className="flex justify-between text-xs font-mono font-bold mb-1.5 text-black">
-                  <span>Downloading {apkRelease.apkName}...</span>
-                  <span>{downloadProgress}%</span>
-                </div>
-                <div className="w-full bg-[#FAF6EE] border-2 border-black rounded-full h-3 p-0.5 overflow-hidden">
-                  <div
-                    className="bg-[#FFE600] h-full rounded-full transition-all duration-300"
-                    style={{ width: `${downloadProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
+            {/* Realistic Animated Download Progress Display */}
+            <AnimatePresence>
+              {downloading && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-white border-2 border-black rounded-xl p-3 shadow-[2px_2px_0px_#000] space-y-2 overflow-hidden"
+                >
+                  <div className="flex items-center justify-between text-xs font-mono font-bold text-black">
+                    <div className="flex items-center gap-2">
+                      <motion.div
+                        animate={{ y: [-4, 4, -4] }}
+                        transition={{ repeat: Infinity, duration: 0.8 }}
+                      >
+                        <ArrowDown className="w-3.5 h-3.5 text-black stroke-[3]" />
+                      </motion.div>
+                      <span className="truncate">
+                        {downloadCompleted ? 'Completed! Starting browser download...' : `Downloading ${apkRelease.apkName}...`}
+                      </span>
+                    </div>
+                    <span className="font-mono bg-[#FFE600] px-1.5 py-0.5 rounded border border-black text-[11px]">
+                      {downloadProgress}%
+                    </span>
+                  </div>
 
-            <button
+                  {/* Animated Striped Progress Bar */}
+                  <div className="w-full bg-[#FAF6EE] border-2 border-black rounded-lg h-4 p-0.5 overflow-hidden">
+                    <motion.div
+                      className="bg-[#FFE600] h-full rounded transition-all duration-150 border-r border-black overflow-hidden"
+                      style={{ width: `${downloadProgress}%` }}
+                    >
+                      <div
+                        className="w-full h-full opacity-30"
+                        style={{
+                          backgroundImage:
+                            'repeating-linear-gradient(45deg, #000 0, #000 6px, transparent 6px, transparent 12px)',
+                        }}
+                      />
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.button
               type="button"
               onClick={() => handleDownloadApk(apkRelease.downloadUrl, apkRelease.apkName)}
               disabled={downloading}
-              className="w-full py-2.5 px-4 bg-[#FFE600] border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-[2px_2px_0px_#000] hover:bg-yellow-300 active:translate-x-[1px] active:translate-y-[1px] cursor-pointer disabled:opacity-50"
+              whileHover={{ scale: downloading ? 1 : 1.02 }}
+              whileTap={{ scale: downloading ? 1 : 0.98 }}
+              className={`w-full py-2.5 px-4 border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+                downloadCompleted
+                  ? 'bg-emerald-400 text-black shadow-[2px_2px_0px_#000]'
+                  : downloading
+                  ? 'bg-neutral-200 text-neutral-600 shadow-[1px_1px_0px_#000] cursor-not-allowed'
+                  : 'bg-[#FFE600] text-black shadow-[2px_2px_0px_#000] hover:bg-yellow-300'
+              }`}
             >
-              <Download className="w-4 h-4 stroke-[2.5]" />
-              <span>{downloading ? 'Downloading...' : `Download ${apkRelease.apkName}`}</span>
-            </button>
+              {downloadCompleted ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                  <span>Download Started!</span>
+                </>
+              ) : downloading ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                  >
+                    <Download className="w-4 h-4 stroke-[2.5]" />
+                  </motion.div>
+                  <span>Downloading... {downloadProgress}%</span>
+                </>
+              ) : (
+                <>
+                  <motion.div
+                    animate={{ y: [0, -2, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.1, ease: 'easeInOut' }}
+                  >
+                    <Download className="w-4 h-4 stroke-[2.5]" />
+                  </motion.div>
+                  <span>Download {apkRelease.apkName}</span>
+                </>
+              )}
+            </motion.button>
           </div>
         )}
 
@@ -304,13 +387,6 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
               README
             </span>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="p-1.5 bg-white border border-black rounded-lg hover:bg-neutral-100 cursor-pointer text-[10px] font-black uppercase"
-                title="Toggle Dark Mode"
-              >
-                {isDarkMode ? 'LIGHT' : 'DARK'}
-              </button>
               {readme && (
                 <button
                   onClick={() => {

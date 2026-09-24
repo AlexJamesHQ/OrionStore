@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Repository } from '../types';
+import { Repository, hasActualApk } from '../types';
 import { formatCompactNumber, formatFileSize } from '../services/githubApi';
 import { ExternalLink, Copy, Check, Download, Package, Tag, Share2 } from 'lucide-react';
 import { StarIcon } from './Icons';
@@ -169,30 +169,12 @@ export const RepoCard: React.FC<RepoCardProps> = ({
     }
   };
 
-  // Detect APK release either from latestRelease object or APK/Android project attributes
-  const isApkRepo =
-    Boolean(repo.latestRelease) ||
-    repo.category === 'Android & APK' ||
-    Boolean(repo.topics?.some((t) => {
-      const lt = t.toLowerCase();
-      return lt.includes('apk') || lt.includes('android') || lt.includes('app') || lt.includes('mobile') || lt.includes('client') || lt.includes('game');
-    })) ||
-    Boolean(repo.description?.toLowerCase().match(/(apk|android|app|mobile|client|release|build|native|player|game|assistant|tool|download)/)) ||
-    Boolean(repo.name.toLowerCase().match(/(apk|android|app|mobile|client|release|build|native|player|game|assistant|tool)/)) ||
-    ['java', 'kotlin', 'dart', 'c#', 'rust'].includes(repo.language?.toLowerCase() || '') ||
-    ['archivetune', 'nuviomobile', 'koda', 'clockyou', 'rustdesk', 'android-titanium-browser', 'microg-ungoogled-chromium', 'kurodo'].includes(
-      repo.name.toLowerCase()
-    );
-
-  const [liveRelease, setLiveRelease] = useState<any>(repo.latestRelease || null);
+  // Detect authentic APK release either from latestRelease or live release
+  const [liveRelease, setLiveRelease] = useState<any>(null);
 
   useEffect(() => {
-    if (repo.latestRelease) {
-      setLiveRelease(repo.latestRelease);
-      return;
-    }
-    if (!isApkRepo) {
-      setLiveRelease(null);
+    // If repo already has a defined release with apk, use it
+    if (repo.latestRelease && (repo.latestRelease.apkName || repo.latestRelease.downloadUrl)) {
       return;
     }
 
@@ -209,6 +191,7 @@ export const RepoCard: React.FC<RepoCardProps> = ({
                 if (isMounted) {
                   setLiveRelease({
                     tagName: r.tag_name || r.name,
+                    name: r.name || `${repo.name} Release`,
                     apkName: apkAsset.name,
                     downloadUrl: apkAsset.browser_download_url,
                     sizeBytes: apkAsset.size,
@@ -229,11 +212,14 @@ export const RepoCard: React.FC<RepoCardProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [repo.full_name, isApkRepo, repo.latestRelease]);
+  }, [repo.full_name, repo.latestRelease]);
 
+  // Ensure any authentic APK / Android app has an APK release for direct downloading
   const apkRelease =
-    liveRelease ||
-    (isApkRepo
+    (repo.latestRelease && (repo.latestRelease.apkName || repo.latestRelease.downloadUrl)
+      ? repo.latestRelease
+      : liveRelease) ||
+    (hasActualApk(repo)
       ? {
           tagName: 'Latest APK',
           name: `${repo.name} Android Package`,
@@ -449,38 +435,45 @@ export const RepoCard: React.FC<RepoCardProps> = ({
 
       {/* Direct APK Download Section if Available */}
       {apkRelease && (
-        <div className="mb-3.5 p-2.5 sm:p-3 bg-[#FFFDF0] border-2 border-black rounded-xl space-y-2.5 shadow-[2px_2px_0px_#000]">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-7 h-7 rounded-lg bg-[#FFE600] border border-black flex items-center justify-center flex-shrink-0">
-                <Package className="w-4 h-4 text-black" />
+        <div className="mb-3.5 p-3 bg-[#FFFDF0] border-2 border-black rounded-xl space-y-2.5 shadow-[2px_2px_0px_#000]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-8 h-8 rounded-lg bg-[#FFE600] border-2 border-black flex items-center justify-center flex-shrink-0 shadow-[1px_1px_0px_#000]">
+                <Package className="w-4 h-4 text-black stroke-[2.5]" />
               </span>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-black text-xs text-black uppercase">
                     APK Release:
                   </span>
-                  <span className="font-mono text-[11px] font-bold bg-neutral-200 border border-black px-1.5 py-0.2 rounded text-neutral-900 truncate">
+                  <span className="font-mono text-[11px] font-bold bg-[#FFE600] border border-black px-1.5 py-0.2 rounded text-black truncate">
                     {apkRelease.tagName}
                   </span>
-                  {/* No APK size */}
                 </div>
-                <p className="font-mono text-[11px] text-neutral-600 truncate">
+                <p className="font-mono text-[11px] text-neutral-600 truncate mt-0.5">
                   {apkRelease.apkName}
                 </p>
               </div>
             </div>
 
-            {/* Download APK Button */}
-            <button
+            {/* Download APK Button: Full width on mobile for easy tapping with bouncy download animation */}
+            <motion.button
               type="button"
               onClick={handleDownloadClick}
-              className="px-3 py-1.5 bg-[#FFE600] border-2 border-black rounded-lg font-black text-xs uppercase flex items-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-yellow-300 active:translate-x-[1px] active:translate-y-[1px] transition-all ml-auto cursor-pointer"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className="w-full sm:w-auto px-4 py-2 sm:py-1.5 bg-[#FFE600] border-2 border-black rounded-lg font-black text-xs uppercase flex items-center justify-center gap-2 shadow-[2px_2px_0px_#000] hover:bg-yellow-300 transition-colors cursor-pointer flex-shrink-0 group overflow-hidden"
               title={`Download ${apkRelease.apkName}`}
             >
-              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+              <motion.div
+                animate={{ y: [0, -2.5, 0] }}
+                transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
+                className="flex items-center justify-center"
+              >
+                <Download className="w-4 h-4 stroke-[2.5] text-black group-hover:translate-y-[1px] transition-transform" />
+              </motion.div>
               <span>Download APK</span>
-            </button>
+            </motion.button>
           </div>
         </div>
       )}

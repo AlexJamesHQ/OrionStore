@@ -4,6 +4,8 @@ import { GitHubUserProfile } from '../types';
 import { DEFAULT_USER_PROFILE } from '../data/sampleRepos';
 import { GitHubIcon, TelegramIcon, FacebookIcon, InstagramIcon, StarIcon } from './Icons';
 
+export type ApkFilterMode = 'all' | 'apk_only' | 'non_apk_only';
+
 interface MenuDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -14,8 +16,10 @@ interface MenuDrawerProps {
   availableCategories: string[];
   sortBy: 'stars' | 'name';
   onSelectSortBy: (sort: 'stars' | 'name') => void;
-  hideNonApk: boolean;
-  onToggleHideNonApk: (hide: boolean) => void;
+  apkFilterMode?: ApkFilterMode;
+  onSelectApkFilterMode?: (mode: ApkFilterMode) => void;
+  hideNonApk?: boolean;
+  onToggleHideNonApk?: (hide: boolean) => void;
   onOpenTelegram: () => void;
   totalStarredCount: number;
   onOpenUpdate?: () => void;
@@ -31,7 +35,9 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   availableCategories,
   sortBy,
   onSelectSortBy,
-  hideNonApk,
+  apkFilterMode = 'all',
+  onSelectApkFilterMode,
+  hideNonApk = false,
   onToggleHideNonApk,
   onOpenUpdate,
   hasUpdate = false,
@@ -174,19 +180,61 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               ))}
             </div>
 
-            <button
-              onClick={() => onToggleHideNonApk(!hideNonApk)}
-              className={`w-full p-2.5 text-center rounded-xl border-2 border-black font-black text-xs uppercase transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                hideNonApk
-                  ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] border-black'
-                  : 'bg-[#FAF6EE] hover:bg-neutral-100'
-              }`}
-            >
-              <span className={`w-4 h-4 rounded border-2 border-black flex items-center justify-center ${hideNonApk ? 'bg-black' : 'bg-white'}`}>
-                {hideNonApk && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
-              </span>
-              Hide Non-APK Repos
-            </button>
+            {/* APK Filter Mode Control */}
+            <div className="mt-4 pt-3 border-t-2 border-dashed border-black/30">
+              <label className="block text-[11px] font-black tracking-wider text-black uppercase mb-2">
+                APK Repos Filter:
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onSelectApkFilterMode) onSelectApkFilterMode('all');
+                    if (onToggleHideNonApk) onToggleHideNonApk(false);
+                  }}
+                  className={`p-2 rounded-xl border-2 border-black font-black text-[10px] uppercase text-center transition-all cursor-pointer ${
+                    apkFilterMode === 'all'
+                      ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] border-black scale-[1.02]'
+                      : 'bg-[#FAF6EE] hover:bg-neutral-100'
+                  }`}
+                >
+                  All (APK First)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onSelectApkFilterMode) onSelectApkFilterMode('apk_only');
+                    if (onToggleHideNonApk) onToggleHideNonApk(true);
+                  }}
+                  className={`p-2 rounded-xl border-2 border-black font-black text-[10px] uppercase text-center transition-all cursor-pointer ${
+                    apkFilterMode === 'apk_only'
+                      ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] border-black scale-[1.02]'
+                      : 'bg-[#FAF6EE] hover:bg-neutral-100'
+                  }`}
+                >
+                  APK Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onSelectApkFilterMode) onSelectApkFilterMode('non_apk_only');
+                    if (onToggleHideNonApk) onToggleHideNonApk(false);
+                  }}
+                  className={`p-2 rounded-xl border-2 border-black font-black text-[10px] uppercase text-center transition-all cursor-pointer ${
+                    apkFilterMode === 'non_apk_only'
+                      ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] border-black scale-[1.02]'
+                      : 'bg-[#FAF6EE] hover:bg-neutral-100'
+                  }`}
+                >
+                  Without APK
+                </button>
+              </div>
+              <p className="font-mono text-[10px] text-neutral-600 mt-1.5">
+                {apkFilterMode === 'all' && '★ All repos shown, with APK apps sorted first.'}
+                {apkFilterMode === 'apk_only' && '★ Showing only repos with APK downloads.'}
+                {apkFilterMode === 'non_apk_only' && '★ Showing only repos without APK.'}
+              </p>
+            </div>
           </div>
 
           {/* Filter by Semantic Category */}

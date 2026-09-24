@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AppUpdateInfo, ApkReleaseItem, formatUpdateDateTime } from '../services/updaterService';
-import { X, Sparkles, Download, ExternalLink, RefreshCw, Package, Calendar, Clock, Copy, Check, CheckCircle2 } from 'lucide-react';
+import {
+  X,
+  Sparkles,
+  Download,
+  ExternalLink,
+  RefreshCw,
+  Package,
+  Calendar,
+  Clock,
+  Copy,
+  Check,
+  CheckCircle2,
+  ArrowDown,
+} from 'lucide-react';
 
 export function renderTextWithLinks(text: string): React.ReactNode {
   if (!text) return null;
@@ -54,6 +68,8 @@ export const AppUpdateModal: React.FC<AppUpdateModalProps> = ({
   onOpenWebView,
 }) => {
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [downloadingUrl, setDownloadingUrl] = useState<string | null>(null);
+  const [downloadedUrl, setDownloadedUrl] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -61,6 +77,36 @@ export const AppUpdateModal: React.FC<AppUpdateModalProps> = ({
     navigator.clipboard.writeText(url);
     setCopiedUrl(url);
     setTimeout(() => setCopiedUrl(null), 2000);
+  };
+
+  const handleDownloadItem = (url: string, fileName: string) => {
+    setDownloadingUrl(url);
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(40);
+    }
+
+    setTimeout(() => {
+      // Trigger actual file download
+      try {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch {
+        window.open(url, '_blank');
+      }
+
+      setDownloadingUrl(null);
+      setDownloadedUrl(url);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([40, 60, 40]);
+      }
+      setTimeout(() => setDownloadedUrl(null), 3000);
+    }, 1100);
   };
 
   const formatSize = (bytes?: number) => {
@@ -199,16 +245,42 @@ export const AppUpdateModal: React.FC<AppUpdateModalProps> = ({
 
                   {/* Actions: Download & Secondary Links */}
                   <div className="grid grid-cols-2 gap-2 pt-0.5">
-                    <a
-                      href={rel.apkDownloadUrl}
-                      download={rel.apkFileName}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="py-2.5 px-3 bg-[#FFE600] border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-yellow-300 active:translate-x-[1px] active:translate-y-[1px] text-black no-underline transition-all cursor-pointer"
+                    <motion.button
+                      type="button"
+                      onClick={() => handleDownloadItem(rel.apkDownloadUrl, rel.apkFileName)}
+                      disabled={downloadingUrl === rel.apkDownloadUrl}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`py-2.5 px-3 border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        downloadedUrl === rel.apkDownloadUrl
+                          ? 'bg-emerald-400 text-black shadow-[2px_2px_0px_#000]'
+                          : downloadingUrl === rel.apkDownloadUrl
+                          ? 'bg-neutral-200 text-neutral-600 shadow-[1px_1px_0px_#000] cursor-not-allowed'
+                          : 'bg-[#FFE600] text-black shadow-[2px_2px_0px_#000] hover:bg-yellow-300'
+                      }`}
                     >
-                      <Download className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>{rel.isApk || rel.apkFileName.toLowerCase().endsWith('.apk') ? 'Download APK' : 'Download ZIP'}</span>
-                    </a>
+                      {downloadedUrl === rel.apkDownloadUrl ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>Started!</span>
+                        </>
+                      ) : downloadingUrl === rel.apkDownloadUrl ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin stroke-[2.5]" />
+                          <span>Downloading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <motion.div
+                            animate={{ y: [0, -2, 0] }}
+                            transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
+                          >
+                            <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+                          </motion.div>
+                          <span>{rel.isApk || rel.apkFileName.toLowerCase().endsWith('.apk') ? 'Download APK' : 'Download ZIP'}</span>
+                        </>
+                      )}
+                    </motion.button>
 
                     <div className="flex gap-1.5">
                       <button

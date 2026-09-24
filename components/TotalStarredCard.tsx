@@ -39,68 +39,71 @@ export const TotalStarredCard: React.FC<StatsLineCardProps> = ({
         </div>
 
         {/* The 3 Stats in ONE BEAUTIFUL LINE: 1. Public, 2. Starred, 3. Favorites/APK */}
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3.5">
           
           {/* 1. PUBLIC REPOSITORIES (First) */}
           <button
             onClick={() => onSelectTab('public')}
-            className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 sm:border-[2.5px] border-black text-center transition-all flex flex-col items-center justify-center ${
+            className={`p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border-2 sm:border-[2.5px] border-black text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
               activeTab === 'public'
-                ? 'bg-[#FFE600] shadow-[3px_3px_0px_#000] sm:shadow-[4px_4px_0px_#000] -translate-y-0.5'
-                : 'bg-[#FAF6EE] hover:bg-neutral-100 shadow-[2px_2px_0px_#000]'
+                ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] sm:shadow-[4px_4px_0px_#000] -translate-y-0.5'
+                : 'bg-[#FAF6EE] hover:bg-neutral-100 shadow-[1px_1px_0px_#000] sm:shadow-[2px_2px_0px_#000]'
             }`}
           >
-            <div className="flex items-center gap-1.5 mb-1 text-black font-black text-[11px] sm:text-xs uppercase tracking-wider">
-              <BookOpen className="w-3.5 h-3.5 text-black" />
+            <div className="flex items-center gap-1 sm:gap-1.5 mb-1 text-black font-black text-[10px] sm:text-xs uppercase tracking-tight sm:tracking-wider">
+              <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-black flex-shrink-0" />
               <span>PUBLIC</span>
             </div>
-            <div className="font-black text-3xl sm:text-5xl md:text-6xl text-[#FF5E00] font-mono tabular-nums leading-none my-1">
+            <div className="font-black text-2xl sm:text-4xl md:text-5xl text-[#FF5E00] font-mono tabular-nums leading-none my-0.5 sm:my-1">
               {publicCount}
             </div>
-            <div className="text-[10px] sm:text-[11px] font-mono font-bold text-neutral-700 uppercase mt-0.5 truncate max-w-full">
-              PUBLIC REPOS
+            <div className="text-[9px] sm:text-[11px] font-mono font-bold text-neutral-700 uppercase tracking-tight">
+              <span className="sm:hidden">REPOS</span>
+              <span className="hidden sm:inline">REPOSITORIES</span>
             </div>
           </button>
 
           {/* 2. STARRED REPOSITORIES (Second) */}
           <button
             onClick={() => onSelectTab('starred')}
-            className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 sm:border-[2.5px] border-black text-center transition-all flex flex-col items-center justify-center ${
+            className={`p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border-2 sm:border-[2.5px] border-black text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
               activeTab === 'starred'
-                ? 'bg-[#FFE600] shadow-[3px_3px_0px_#000] sm:shadow-[4px_4px_0px_#000] -translate-y-0.5'
-                : 'bg-[#FAF6EE] hover:bg-neutral-100 shadow-[2px_2px_0px_#000]'
+                ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] sm:shadow-[4px_4px_0px_#000] -translate-y-0.5'
+                : 'bg-[#FAF6EE] hover:bg-neutral-100 shadow-[1px_1px_0px_#000] sm:shadow-[2px_2px_0px_#000]'
             }`}
           >
-            <div className="flex items-center gap-1.5 mb-1 text-black font-black text-[11px] sm:text-xs uppercase tracking-wider">
-              <StarIcon className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            <div className="flex items-center gap-1 sm:gap-1.5 mb-1 text-black font-black text-[10px] sm:text-xs uppercase tracking-tight sm:tracking-wider">
+              <StarIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 fill-amber-500 flex-shrink-0" />
               <span>STARRED</span>
             </div>
-            <div className="font-black text-3xl sm:text-5xl md:text-6xl text-[#FF5E00] font-mono tabular-nums leading-none my-1">
+            <div className="font-black text-2xl sm:text-4xl md:text-5xl text-[#FF5E00] font-mono tabular-nums leading-none my-0.5 sm:my-1">
               {starredCount}
             </div>
-            <div className="text-[10px] sm:text-[11px] font-mono font-bold text-neutral-700 uppercase mt-0.5 truncate max-w-full">
-              STARRED REPOS
+            <div className="text-[9px] sm:text-[11px] font-mono font-bold text-neutral-700 uppercase tracking-tight">
+              <span className="sm:hidden">STARRED</span>
+              <span className="hidden sm:inline">FAVORITES</span>
             </div>
           </button>
 
           {/* 3. APK RELEASES (Third) */}
           <button
             onClick={() => onSelectTab('apk')}
-            className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 sm:border-[2.5px] border-black text-center transition-all flex flex-col items-center justify-center ${
+            className={`p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border-2 sm:border-[2.5px] border-black text-center transition-all flex flex-col items-center justify-center cursor-pointer relative overflow-hidden ${
               activeTab === 'apk'
-                ? 'bg-[#FFE600] shadow-[3px_3px_0px_#000] sm:shadow-[4px_4px_0px_#000] -translate-y-0.5'
-                : 'bg-[#FAF6EE] hover:bg-neutral-100 shadow-[2px_2px_0px_#000]'
+                ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] sm:shadow-[4px_4px_0px_#000] -translate-y-0.5'
+                : 'bg-[#FAF6EE] hover:bg-neutral-100 shadow-[1px_1px_0px_#000] sm:shadow-[2px_2px_0px_#000]'
             }`}
           >
-            <div className="flex items-center gap-1.5 mb-1 text-black font-black text-[11px] sm:text-xs uppercase tracking-wider">
-              <Package className="w-3.5 h-3.5 text-black stroke-[2.5]" />
-              <span>APK RELEASE</span>
+            <div className="flex items-center gap-1 sm:gap-1.5 mb-1 text-black font-black text-[10px] sm:text-xs uppercase tracking-tight sm:tracking-wider">
+              <Package className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-black stroke-[2.5] flex-shrink-0" />
+              <span>APK APPS</span>
             </div>
-            <div className="font-black text-3xl sm:text-5xl md:text-6xl text-[#FF5E00] font-mono tabular-nums leading-none my-1">
+            <div className="font-black text-2xl sm:text-4xl md:text-5xl text-[#FF5E00] font-mono tabular-nums leading-none my-0.5 sm:my-1">
               {apkCount}
             </div>
-            <div className="text-[10px] sm:text-[11px] font-mono font-bold text-neutral-700 uppercase mt-0.5 truncate max-w-full">
-              APK RELEASES
+            <div className="text-[9px] sm:text-[11px] font-mono font-bold text-neutral-700 uppercase tracking-tight">
+              <span className="sm:hidden">DOWNLOAD</span>
+              <span className="hidden sm:inline">RELEASES</span>
             </div>
           </button>
 
