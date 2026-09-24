@@ -164,7 +164,8 @@ export async function fetchGitHubUserData(input: string, fresh: boolean = true):
   // Tier 1: Try Server Proxy API
   try {
     const srvRes = await fetch(`/api/github-user?user=${encodeURIComponent(cleanUser)}&fresh=${fresh}`);
-    if (srvRes.ok) {
+    const isJson = srvRes.ok && (srvRes.headers.get('content-type') || '').includes('application/json');
+    if (isJson) {
       const data: UserFullData = await srvRes.json();
       if (data && (data.publicRepos?.length > 0 || data.starredRepos?.length > 0 || data.profile)) {
         data.publicRepos = (data.publicRepos || []).map(enrichWithApkAndCategory);
