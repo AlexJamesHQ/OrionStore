@@ -1,0 +1,41 @@
+name: GitHub Portfolio Sync & CI/CD Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  schedule:
+    # Auto-run every 12 hours to keep the portfolio totally synchronized and rebuilt
+    - cron: '0 */12 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI anytime
+
+jobs:
+  build-and-test:
+    name: Verify Build & Sync Repositories
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install All Dependencies
+        run: npm ci || npm install
+
+      - name: Verify TypeScript & Production Build
+        run: npm run build
+
+      - name: Trigger Live Vercel Rebuild Hook
+        # If you add VERCEL_DEPLOY_HOOK in your GitHub Repo Secrets, this will trigger live updates
+        if: env.VERCEL_DEPLOY_HOOK != ''
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          echo "Triggering Vercel Deploy Hook..."
+          curl -X POST "$VERCEL_DEPLOY_HOOK"
