@@ -217,7 +217,7 @@ export async function fetchGitHubUserData(input: string, fresh: boolean = true):
           ? `https://api.github.com/users/${encodeURIComponent(cleanUser)}/repos?per_page=100&page=${page}&sort=updated&type=owner`
           : `https://api.github.com/users/${encodeURIComponent(cleanUser)}/starred?per_page=100&page=${page}`;
         const response = await fetch(url, { headers: clientHeaders });
-        if (!response.ok) break;
+        if (!response.ok) throw new Error(`GitHub ${kind} request failed (${response.status})`);
         const pageData = await response.json();
         if (!Array.isArray(pageData) || pageData.length === 0) break;
         all.push(...pageData);
@@ -235,7 +235,18 @@ export async function fetchGitHubUserData(input: string, fresh: boolean = true):
       ]);
       publicRepos = pubData.map(mapApiRepo);
       starredRepos = starData.map(mapApiRepo);
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Direct GitHub repository fallback failed:', e);
+    }
+
+    // If GitHub explicitly reports public repositories but the browser could not
+    // retrieve them, never pretend the account has zero repositories.
+    if (Number(profile.public_repos || 0) > 0 && publicRepos.length === 0) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try { return JSON.parse(cached); } catch (_) {}
+      }
+    }
 
     const finalPublic = publicRepos;
     const finalStarred = starredRepos;
