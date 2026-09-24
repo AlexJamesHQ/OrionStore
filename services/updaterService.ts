@@ -160,7 +160,14 @@ export async function checkForAppUpdates(user: string = 'AlexJamesHQ', knownRepo
       ? {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user, repos: knownRepos }),
+          body: JSON.stringify({
+            user,
+            repos: knownRepos.map((r: any) => ({
+              name: r.name,
+              full_name: r.full_name || (r.owner?.login ? `${r.owner.login}/${r.name}` : r.name),
+              owner: { login: r.owner?.login || user },
+            })),
+          }),
         }
       : {
           method: 'GET',
