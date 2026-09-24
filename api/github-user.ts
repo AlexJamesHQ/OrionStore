@@ -1,131 +1,72 @@
-function isLikelyApk(repo: any): boolean {
-  const name = String(repo?.name || '').toLowerCase();
-  const desc = String(repo?.description || '').toLowerCase();
-  const topics = Array.isArray(repo?.topics) ? repo.topics.map((x: any) => String(x).toLowerCase()) : [];
-  return name.includes('apk') || desc.includes('apk') || desc.includes('android app') || topics.some((x: string) => x === 'apk' || x === 'android' || x.includes('android-app'));
-}
-
-function enrichRepo(r: any) {
-  const isApk = isLikelyApk(r);
-  return {
-    ...r,
-    latestRelease: r.latestRelease || null,
-    category: isApk ? 'Android & APK' : r.category || 'Tools & Utilities',
-  };
-}
-
 function cleanUsername(value: string): string {
-  return value
-    .trim()
-    .replace(/^https?:\/\//i, '')
-    .replace(/^www\./i, '')
-    .replace(/^github\.com\//i, '')
-    .replace(/^@/, '')
-    .split('/')[0]
-    .trim();
+  return value.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/^github\.com\//i, '').replace(/^@/, '').split('/')[0].trim();
 }
 
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store, max-age=0',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+function isLikelyApk(repo: any): boolean {
+  const text = `${repo?.name || ''} ${repo?.description || ''}`.toLowerCase();
+  const topics = Array.isArray(repo?.topics) ? repo.topics.map((x: any) => String(x).toLowerCase()) : [];
+  return text.includes('apk') || text.includes('android app') || topics.includes('apk') || topics.includes('android') || topics.some((x: string) => x.includes('android-app'));
 }
 
-export async function OPTIONS(): Promise<Response> {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+function enrichRepo(repo: any) {
+  return { ...repo, latestRelease: repo.latestRelease || null, category: isLikelyApk(repo) ? 'Android & APK' : (repo.category || 'Tools & Utilities') };
 }
 
-export async function GET(request: Request): Promise<Response> {
-  const url = new URL(request.url);
-  const cleanUser = cleanUsername(url.searchParams.get('user') || 'AlexJamesHQ');
-  if (!cleanUser) return json({ error: 'GitHub username is required' }, 400);
+function send(res: any, status: number, data: any) {
+  res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8').setHeader('Cache-Control', 'no-store').setHeader('Access-Control-Allow-Origin', '*').setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS').setHeader('Access-Control-Allow-Headers', 'Content-Type').json(data);
+}
 
-  const baseHeaders: Record<string, string> = {
-    Accept: 'application/vnd.github+json',
-    'User-Agent': 'OrionStore/1.0',
-  };
+export default async function handler(req: any, res: any) {
+  if (req.method === 'OPTIONS') return send(res, 204, {});
+  if (req.method !== 'GET') return send(res, 405, { error: 'Method not allowed' });
+
+  const username = cleanUsername(String(req.query?.user || 'AlexJamesHQ'));
+  if (!username) return send(res, 400, { error: 'GitHub username is required' });
+
+  const baseHeaders: Record<string, string> = { Accept: 'application/vnd.github+json', 'User-Agent': 'OrionStore' };
   const token = String(process.env.GITHUB_TOKEN || '').trim();
-  const authHeaders = token
-    ? { ...baseHeaders, Authorization: `Bearer ${token}` }
-    : baseHeaders;
 
-  async function gh(endpoint: string): Promise<Response> {
-    let response = await fetch(endpoint, { headers: authHeaders });
-    if (response.status === 401 && token) {
-      response = await fetch(endpoint, { headers: baseHeaders });
-    }
+  async function github(url: string): Promise<Response> {
+    const headers = token ? { ...baseHeaders, Authorization: `Bearer ${token}` } : baseHeaders;
+    let response = await fetch(url, { headers });
+    if (response.status === 401 && token) response = await fetch(url, { headers: baseHeaders });
     return response;
   }
 
   try {
-    const profileRes = await gh(`https://api.github.com/users/${encodeURIComponent(cleanUser)}`);
-    if (profileRes.status === 404) return json({ error: 'GitHub user not found' }, 404);
-    if (profileRes.status === 403) return json({ error: 'GitHub API rate limit reached' }, 429);
-    if (!profileRes.ok) return json({ error: `GitHub profile request failed (${profileRes.status})` }, 502);
+    const profileRes = await github(`https://api.github.com/users/${encodeURIComponent(username)}`);
+    if (profileRes.status === 404) return send(res, 404, { error: 'GitHub user not found' });
+    if (profileRes.status === 403) return send(res, 429, { error: 'GitHub API rate limit reached' });
+    if (!profileRes.ok) return send(res, 502, { error: `GitHub profile request failed (${profileRes.status})` });
+    const profile = await profileRes.json();
 
-    const p = await profileRes.json();
-
-    async function fetchAll(kind: 'repos' | 'starred'): Promise<any[]> {
+    async function getAll(kind: 'repos' | 'starred') {
       const all: any[] = [];
-      for (let page = 1; page <= 10; page += 1) {
-        const endpoint = kind === 'repos'
-          ? `https://api.github.com/users/${encodeURIComponent(cleanUser)}/repos?per_page=100&page=${page}&sort=updated&type=owner`
-          : `https://api.github.com/users/${encodeURIComponent(cleanUser)}/starred?per_page=100&page=${page}`;
-        const response = await gh(endpoint);
-        if (response.status === 403) throw new Error(`GitHub ${kind} rate limit reached`);
-        if (!response.ok) throw new Error(`GitHub ${kind} request failed (${response.status})`);
-        const pageData = await response.json();
-        if (!Array.isArray(pageData)) throw new Error(`GitHub ${kind} returned invalid data`);
-        all.push(...pageData);
-        if (pageData.length < 100) break;
+      for (let page = 1; page <= 10; page++) {
+        const url = kind === 'repos'
+          ? `https://api.github.com/users/${encodeURIComponent(username)}/repos?per_page=100&page=${page}&sort=updated&type=owner`
+          : `https://api.github.com/users/${encodeURIComponent(username)}/starred?per_page=100&page=${page}`;
+        const r = await github(url);
+        if (r.status === 403) throw new Error(`GitHub ${kind} rate limit reached`);
+        if (!r.ok) throw new Error(`GitHub ${kind} request failed (${r.status})`);
+        const items = await r.json();
+        if (!Array.isArray(items)) throw new Error(`GitHub ${kind} returned invalid data`);
+        all.push(...items);
+        if (items.length < 100) break;
       }
       return all;
     }
 
-    const [reposData, starredData] = await Promise.all([
-      fetchAll('repos'),
-      fetchAll('starred'),
-    ]);
+    const [repos, starred] = await Promise.all([getAll('repos'), getAll('starred')]);
+    const publicRepos = repos.map(enrichRepo);
+    const starredRepos = starred.map(enrichRepo);
 
-    const publicRepos = reposData.map(enrichRepo);
-    const starredRepos = starredData.map(enrichRepo);
-
-    return json({
-      profile: {
-        login: p.login,
-        name: p.name || p.login,
-        avatar_url: p.avatar_url,
-        html_url: p.html_url,
-        bio: p.bio,
-        company: p.company,
-        location: p.location,
-        blog: p.blog,
-        public_repos: Number(p.public_repos || publicRepos.length),
-        followers: Number(p.followers || 0),
-        following: Number(p.following || 0),
-      },
-      publicRepos,
-      starredRepos,
-      publicCount: publicRepos.length,
-      starredCount: starredRepos.length,
+    return send(res, 200, {
+      profile: { login: profile.login, name: profile.name || profile.login, avatar_url: profile.avatar_url, html_url: profile.html_url, bio: profile.bio, company: profile.company, location: profile.location, blog: profile.blog, public_repos: Number(profile.public_repos || publicRepos.length), followers: Number(profile.followers || 0), following: Number(profile.following || 0) },
+      publicRepos, starredRepos, publicCount: publicRepos.length, starredCount: starredRepos.length,
     });
   } catch (error) {
-    console.error('github-user error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown GitHub API error';
-    return json({ error: 'Unable to load GitHub repositories right now.', detail: message }, 502);
+    console.error('github-user error', error);
+    return send(res, 502, { error: 'Unable to load GitHub repositories right now.', detail: error instanceof Error ? error.message : String(error) });
   }
 }

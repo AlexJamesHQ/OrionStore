@@ -1,4 +1,5 @@
-import { ALEX_PUBLIC_REPOSITORIES, INITIAL_REPOSITORIES } from '../data/sampleRepos';
+const ALEX_PUBLIC_REPOSITORIES: any[] = [];
+const INITIAL_REPOSITORIES: any[] = [];
 
 const KNOWN_MAP: Record<string, any> = {
   orionstore: {

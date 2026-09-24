@@ -1,4 +1,5 @@
-import { APP_CURRENT_VERSION, APP_UPDATE_REPOSITORY } from '../config/app';
+const APP_CURRENT_VERSION = '1.4.2';
+const APP_UPDATE_REPOSITORY = 'AlexJamesHQ/OrionStore';
 
 interface GitHubRelease {
   tag_name?: string;
