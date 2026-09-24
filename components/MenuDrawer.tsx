@@ -28,6 +28,7 @@ interface MenuDrawerProps {
 export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   isOpen,
   onClose,
+  currentUser,
   onSwitchUser,
   selectedCategory,
   onSelectCategory,
