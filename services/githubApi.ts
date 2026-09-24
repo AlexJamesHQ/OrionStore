@@ -156,7 +156,7 @@ export async function fetchGitHubUserData(input: string, fresh: boolean = true):
       // Do not accept a profile-only response as success: an API failure can still return profile data.
       // Fall through to the direct GitHub API when repository arrays are empty for a non-default user.
       const hasRepositoryData = (data.publicRepos?.length || 0) > 0 || (data.starredRepos?.length || 0) > 0;
-      if (data && (hasRepositoryData || data.profile?.login)) {
+      if (data && data.profile?.login && (hasRepositoryData || ((data.publicRepos?.length ?? 0) === 0 && (data.starredRepos?.length ?? 0) === 0 && Number(data.profile?.public_repos ?? 0) === 0))) {
         data.publicRepos = (data.publicRepos || []).map(enrichWithApkAndCategory);
         data.starredRepos = (data.starredRepos || []).map(enrichWithApkAndCategory);
         localStorage.setItem(cacheKey, JSON.stringify(data));
