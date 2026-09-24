@@ -6,6 +6,7 @@ export interface FlipCardProps {
   back: React.ReactNode;
   axis?: 'x' | 'y';
   flipOnClick?: boolean;
+  flipped?: boolean;
   draggable?: boolean;
   dragDistance?: number;
   tilt?: boolean;
@@ -32,6 +33,7 @@ export const FlipCard: React.FC<FlipCardProps> = ({
   back,
   axis = 'y',
   flipOnClick = true,
+  flipped: controlledFlipped,
   draggable = false,
   dragDistance = 0,
   tilt = true,
@@ -52,7 +54,8 @@ export const FlipCard: React.FC<FlipCardProps> = ({
   shadowOpacity = 0.45,
   onFlipChange,
 }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
+  const [internalFlipped, setInternalFlipped] = useState(false);
+  const isFlipped = controlledFlipped !== undefined ? controlledFlipped : internalFlipped;
   const cardRef = useRef<HTMLDivElement>(null);
 
   // Mouse position relative to card center (-0.5 to 0.5)
@@ -70,12 +73,12 @@ export const FlipCard: React.FC<FlipCardProps> = ({
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!tilt || !cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
+    const widthPx = rect.width;
+    const heightPx = rect.height;
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-    x.set(mouseX / width - 0.5);
-    y.set(mouseY / height - 0.5);
+    x.set(mouseX / widthPx - 0.5);
+    y.set(mouseY / heightPx - 0.5);
   };
 
   const handleMouseLeave = () => {
@@ -86,7 +89,9 @@ export const FlipCard: React.FC<FlipCardProps> = ({
   const handleClick = () => {
     if (!flipOnClick) return;
     const nextFlipped = !isFlipped;
-    setIsFlipped(nextFlipped);
+    if (controlledFlipped === undefined) {
+      setInternalFlipped(nextFlipped);
+    }
     if (onFlipChange) onFlipChange(nextFlipped);
   };
 
@@ -142,7 +147,7 @@ export const FlipCard: React.FC<FlipCardProps> = ({
             backgroundColor: background,
             color,
           }}
-          className="relative w-full h-full overflow-hidden"
+          className="relative w-full h-full"
         >
           {/* Front Face */}
           <div
@@ -150,8 +155,11 @@ export const FlipCard: React.FC<FlipCardProps> = ({
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               borderRadius: `${radius}px`,
+              overflow: 'hidden',
+              transform: 'rotateX(0deg) rotateY(0deg)',
+              transformStyle: 'preserve-3d',
             }}
-            className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden"
+            className="absolute inset-0 w-full h-full flex items-center justify-center"
           >
             {front}
           </div>
@@ -162,11 +170,13 @@ export const FlipCard: React.FC<FlipCardProps> = ({
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               transform: axis === 'y' ? 'rotateY(180deg)' : 'rotateX(180deg)',
+              transformStyle: 'preserve-3d',
               borderRadius: `${radius}px`,
+              overflow: 'hidden',
               backgroundColor: background,
               color,
             }}
-            className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden"
+            className="absolute inset-0 w-full h-full flex items-center justify-center"
           >
             {back}
           </div>
@@ -177,8 +187,9 @@ export const FlipCard: React.FC<FlipCardProps> = ({
               style={{
                 pointerEvents: 'none',
                 background: `radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,${glareOpacity}) 0%, rgba(255,255,255,0) 80%)`,
+                borderRadius: `${radius}px`,
               }}
-              className="absolute inset-0 z-10 rounded-[inherit]"
+              className="absolute inset-0 z-10"
             />
           )}
         </motion.div>

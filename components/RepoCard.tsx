@@ -287,23 +287,15 @@ export const RepoCard: React.FC<RepoCardProps> = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
-      whileHover={{ y: -10, transition: { duration: 0.3 } }}
-      // Continuous floating animation
-      animate={{ 
-        y: [0, -8, 0],
-        opacity: 1
-      }}
+      initial={{ opacity: 0.82, scale: 0.94 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: false, amount: 0.15 }}
       transition={{ 
-        y: {
-          duration: 3 + Math.random() * 2,
-          repeat: Infinity,
-          ease: "easeInOut"
-        },
-        opacity: { duration: 0.4 }
+        duration: 0.35,
+        ease: [0.16, 1, 0.3, 1]
       }}
+      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+      whileTap={{ scale: 0.98 }}
       onClick={handleCardClick}
       className="group relative bg-white rounded-xl sm:rounded-2xl border-[2.5px] sm:border-[3px] border-black p-4 sm:p-5 shadow-[3px_3px_0px_#000] sm:shadow-[5px_5px_0px_#000] hover:shadow-[8px_8px_0px_#000] transition-all cursor-pointer overflow-visible"
     >
