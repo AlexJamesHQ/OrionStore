@@ -55,6 +55,7 @@ const App: React.FC = () => {
   // Loading & status
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // App & APK Update checking state
   const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
@@ -132,6 +133,7 @@ const App: React.FC = () => {
     if (!cleanUser) return;
 
     setIsLoading(true);
+    setLoadError(null);
     try {
       const data = await fetchGitHubUserData(cleanUser, fresh);
       const nextPublic = Array.isArray(data.publicRepos) ? data.publicRepos : [];
@@ -168,8 +170,10 @@ const App: React.FC = () => {
       if (upInfo) {
         setUpdateInfo(upInfo);
       }
-    } catch {
-      // Gracefully retain existing state
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to load GitHub repositories.';
+      setLoadError(message);
+      console.error('OrionStore GitHub sync failed:', error);
     } finally {
       setIsLoading(false);
     }
@@ -178,6 +182,7 @@ const App: React.FC = () => {
   // Refresh current user data with live fresh flag and sync updates
   const handleRefresh = async (user: string) => {
     setIsRefreshing(true);
+    setLoadError(null);
     try {
       const data = await fetchGitHubUserData(user, true);
       const nextPublic = Array.isArray(data.publicRepos) ? data.publicRepos : [];
@@ -204,8 +209,10 @@ const App: React.FC = () => {
       setCurrentUsername(nextProfile.login || user);
       const info = await checkForAppUpdates();
       setUpdateInfo(info);
-    } catch {
-      // ignore
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to refresh GitHub repositories.';
+      setLoadError(message);
+      console.error('OrionStore GitHub refresh failed:', error);
     } finally {
       setIsRefreshing(false);
     }
@@ -581,6 +588,19 @@ const App: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {loadError && (
+          <div className="w-full mb-4 bg-[#FFF4F4] border-[2.5px] border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000]">
+            <p className="font-black text-sm uppercase text-black mb-1">GitHub Sync Failed</p>
+            <p className="font-mono text-xs text-neutral-700 break-words">{loadError}</p>
+            <button
+              onClick={() => handleRefresh(currentUsername)}
+              className="mt-3 px-3 py-2 bg-[#FFE600] border-2 border-black rounded-xl text-xs font-black uppercase shadow-[2px_2px_0px_#000]"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
 
         {/* Repositories List with Comfortable Spacing */}
         {isLoading ? (
