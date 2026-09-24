@@ -48,6 +48,19 @@ body {
   box-shadow: 8px 8px 0px #000000;
 }
 
+/* Prevent mobile pull-to-refresh & background bounce when modal is open */
+body.modal-open {
+  overflow: hidden !important;
+  height: 100vh !important;
+  touch-action: none;
+}
+
+.overscroll-contain {
+  overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Smooth Entrance & Interactive Animations */
 @keyframes fadeInSlideUp {
   0% {
