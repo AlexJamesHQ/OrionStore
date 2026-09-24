@@ -165,10 +165,7 @@ export const RepoCard: React.FC<RepoCardProps> = ({
     }, 750);
 
     if (onSelectRepo) {
-      onSelectRepo({
-        ...repo,
-        latestRelease: liveRelease || repo.latestRelease,
-      });
+      onSelectRepo(repo);
     }
   };
 

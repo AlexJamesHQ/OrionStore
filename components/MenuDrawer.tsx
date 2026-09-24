@@ -118,7 +118,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 </p>
                 <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#6B21A8] mt-1">
                   <StarIcon className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                  <span>{developerProfile.starred_count || 45} Starred Repositories</span>
+                  <span>{developerProfile.starred_count || 46} Starred Repositories</span>
                 </div>
               </div>
             </div>
