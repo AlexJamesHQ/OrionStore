@@ -75,7 +75,7 @@ const App: React.FC = () => {
 
   // Category and sorting filters
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<'stars' | 'name'>('stars');
+  const [sortBy, setSortBy] = useState<'updated' | 'stars' | 'name'>('updated');
   const [apkFilterMode, setApkFilterMode] = useState<ApkFilterMode>('all');
   const hideNonApk = apkFilterMode === 'apk_only';
 
@@ -391,13 +391,21 @@ const App: React.FC = () => {
         return matchesQuery && matchesCategory && matchesApkFilter;
       })
       .sort((a, b) => {
-        // "যাতে যেগুলো apk আছে সব প্রথমে দেখাবে" - Repositories with authentic APK are ALWAYS placed first!
+        // Repositories with authentic APK are ALWAYS placed first
         const aHasApk = hasActualApk(a);
         const bHasApk = hasActualApk(b);
         if (aHasApk && !bHasApk) return -1;
         if (!aHasApk && bHasApk) return 1;
 
-        if (sortBy === 'stars') return b.stargazers_count - a.stargazers_count;
+        if (sortBy === 'updated') {
+          return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
+        }
+        if (sortBy === 'stars') {
+          if (b.stargazers_count !== a.stargazers_count) {
+            return b.stargazers_count - a.stargazers_count;
+          }
+          return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
+        }
         return a.name.localeCompare(b.name);
       });
   }, [currentBaseList, repoFilterQuery, selectedCategory, sortBy, apkFilterMode]);
