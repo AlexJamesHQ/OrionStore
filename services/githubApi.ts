@@ -142,11 +142,23 @@ export function determineCategory(r: {
 
 export async function fetchGitHubUserData(input: string, fresh: boolean = true): Promise<UserFullData> {
   const cleanUser = extractGitHubUsername(input) || 'AlexJamesHQ';
-  const cacheKey = `github_data_${cleanUser}`;
+  const cacheKey = `github_data_v4_${cleanUser.toLowerCase()}`;
+
+  // Clean up legacy stale cache with inaccurate mock stars if present
+  try {
+    localStorage.removeItem('github_data_AlexJamesHQ');
+    localStorage.removeItem('github_data_alexjameshq');
+    localStorage.removeItem('github_data_v2_alexjameshq');
+    localStorage.removeItem('github_data_v3_alexjameshq');
+  } catch (e) {}
 
   if (!fresh) {
     const cached = localStorage.getItem(cacheKey);
-    if (cached) return JSON.parse(cached);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
+    }
   }
 
   // Tier 1: Try Server Proxy API
@@ -169,7 +181,6 @@ export async function fetchGitHubUserData(input: string, fresh: boolean = true):
   try {
     const clientHeaders: Record<string, string> = {
       Accept: 'application/vnd.github.v3+json',
-      Authorization: 'Bearer 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',
     };
 
     const profileRes = await fetch(
@@ -249,15 +260,17 @@ export async function fetchGitHubUserData(input: string, fresh: boolean = true):
     const finalProfile = isAlex
       ? {
           ...DEFAULT_USER_PROFILE,
-          public_repos: enrichedPublic.length,
-          starred_count: enrichedStarred.length,
-          followers: profile.followers || DEFAULT_USER_PROFILE.followers,
-          following: profile.following || DEFAULT_USER_PROFILE.following,
+          name: profile.name || DEFAULT_USER_PROFILE.name,
+          bio: profile.bio || DEFAULT_USER_PROFILE.bio,
+          public_repos: profile.public_repos || enrichedPublic.length || DEFAULT_USER_PROFILE.public_repos,
+          starred_count: profile.starred_count || enrichedStarred.length || DEFAULT_USER_PROFILE.starred_count,
+          followers: typeof profile.followers === 'number' && profile.followers > 0 ? profile.followers : DEFAULT_USER_PROFILE.followers,
+          following: typeof profile.following === 'number' && profile.following > 0 ? profile.following : DEFAULT_USER_PROFILE.following,
         }
       : {
           ...profile,
           public_repos: profile.public_repos || enrichedPublic.length,
-          starred_count: enrichedStarred.length,
+          starred_count: profile.starred_count || enrichedStarred.length,
         };
 
     const result = {

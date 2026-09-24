@@ -4,8 +4,12 @@
 */
 
 
-import { GoogleGenAI, Modality } from "@google/genai";
-import { extractHtmlFromText } from "../utils/html";
+import { GoogleGenAI } from "@google/genai";
+
+export function extractHtmlFromText(text: string): string {
+  const match = text.match(/```(?:html)?\s*([\s\S]*?)\s*```/i);
+  return match ? match[1].trim() : text.trim();
+}
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
