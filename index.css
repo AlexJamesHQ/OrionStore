@@ -73,6 +73,31 @@ body.modal-open {
   }
 }
 
+@keyframes softHeartRain {
+  0% {
+    transform: translateY(-40px) scale(0.5);
+    opacity: 0;
+    filter: blur(4px);
+  }
+  20% {
+    opacity: 0.9;
+    filter: blur(0px);
+  }
+  80% {
+    opacity: 0.85;
+    filter: blur(0px);
+  }
+  100% {
+    transform: translateY(105vh) scale(0.9);
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+.animate-soft-heart-rain {
+  animation: softHeartRain 4.2s ease-in-out forwards;
+}
+
 @keyframes popIn {
   0% {
     opacity: 0;

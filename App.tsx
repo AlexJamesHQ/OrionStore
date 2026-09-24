@@ -27,6 +27,7 @@ import {
   InAppDownloadInfo,
   LogoLoop,
   FlipCard,
+  TextPressure,
   GitHubIcon,
 } from './components';
 import { ApkFilterMode } from './components/MenuDrawer';
@@ -77,6 +78,24 @@ const App: React.FC = () => {
   const [sortBy, setSortBy] = useState<'stars' | 'name'>('stars');
   const [apkFilterMode, setApkFilterMode] = useState<ApkFilterMode>('all');
   const hideNonApk = apkFilterMode === 'apk_only';
+
+  // Heart Rain Animation state
+  const [heartParticles, setHeartParticles] = useState<Array<{ id: number; x: number; size: number; speed: number; emoji: string }>>([]);
+
+  const triggerHeartRain = () => {
+    const newParticles = Array.from({ length: 16 }).map((_, i) => ({
+      id: Date.now() + i + Math.random(),
+      x: Math.random() * window.innerWidth,
+      size: Math.floor(Math.random() * 20) + 18,
+      speed: Math.random() * 1.5 + 3.5,
+      emoji: '❤️',
+    }));
+    setHeartParticles((prev) => [...prev, ...newParticles]);
+
+    setTimeout(() => {
+      setHeartParticles((prev) => prev.filter(p => !newParticles.some(np => np.id === p.id)));
+    }, 5000);
+  };
 
   // Modals state
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -535,34 +554,36 @@ const App: React.FC = () => {
         </div>
 
         {/* Section Heading & Controls */}
-        <div className="flex items-center justify-between mt-1 mb-3.5 select-none">
-          <div className="flex items-center gap-2.5">
-            <h3 className="text-[#6B21A8] font-black text-lg sm:text-xl tracking-[0.14em] uppercase">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mt-2 mb-4 select-none">
+          {/* Left: Title + Badge */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <h3 className="text-[#6B21A8] font-black text-base sm:text-xl tracking-[0.08em] uppercase leading-none truncate">
               {activeTab === 'public'
                 ? 'PUBLIC REPOSITORIES'
                 : activeTab === 'starred'
                 ? 'STARRED REPOSITORIES'
                 : 'APK RELEASES & APPS'}
             </h3>
-            <span className="text-xs font-mono font-bold text-neutral-700 bg-white border-2 border-black px-2 py-0.5 rounded-lg shadow-[2px_2px_0px_#000]">
+            <span className="text-xs font-mono font-black text-black bg-[#FFE600] border-2 border-black px-2.5 py-0.5 rounded-lg shadow-[2px_2px_0px_#000] flex-shrink-0">
               {filteredRepos.length}
             </span>
           </div>
 
-          {/* Controls: Refresh + Filter Settings */}
-          <div className="flex items-center gap-2">
+          {/* Right Controls: Refresh + Filter Settings */}
+          <div className="flex items-center gap-2.5 flex-shrink-0 self-start sm:self-auto">
             <button
               onClick={() => handleRefresh(currentUsername)}
               title="Refresh repositories and releases from GitHub"
-              className="p-1.5 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0px_#000] hover:bg-neutral-100 hover:scale-105 active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
+              className="p-1.5 sm:p-2 px-2.5 sm:px-2 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] hover:bg-neutral-100 hover:scale-105 active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <RefreshCw
                 className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`}
               />
+              <span className="text-xs font-mono font-bold uppercase sm:hidden">Sync</span>
             </button>
             <button
               onClick={() => setIsMenuOpen(true)}
-              className="px-2.5 py-1 text-xs font-bold font-mono uppercase bg-white border-2 border-black rounded-lg shadow-[2px_2px_0px_#000] hover:bg-neutral-100 hover:scale-105 flex items-center gap-1.5 active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
+              className="px-3 py-1.5 text-xs font-bold font-mono uppercase bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] hover:bg-neutral-100 hover:scale-105 flex items-center gap-1.5 active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
               <span>Settings</span>
@@ -614,7 +635,7 @@ const App: React.FC = () => {
         )}
         
         {/* Technology Stack Marquee */}
-        <div className="mt-16">
+        <div className="mt-4">
           <LogoLoop />
         </div>
 
@@ -671,23 +692,43 @@ const App: React.FC = () => {
           />
         </motion.div>
 
+        {/* TextPressure Interactive Variable Font Header */}
+        <div className="w-full py-4 px-4 sm:px-6 bg-[#09090f] border-t-4 border-b-4 border-black shadow-[0_4px_0px_#000] overflow-hidden my-10">
+          <TextPressure
+            text="ALEX JAMES DEV"
+            flex={true}
+            alpha={false}
+            stroke={false}
+            width={true}
+            weight={true}
+            italic={true}
+            textColor="#ffffff"
+            minFontSize={32}
+          />
+        </div>
+
         {/* Bottom Motion Echo Developer Banner - Responsive Mobile-Optimized Neobrutalist Card */}
         <footer className="mt-10 sm:mt-14 mb-8 sm:mb-10 w-full select-none px-1">
           <div className="w-full max-w-lg mx-auto p-4 sm:p-6 bg-white border-[3px] border-black rounded-2xl sm:rounded-3xl shadow-[4px_4px_0px_#000] sm:shadow-[5px_5px_0px_#000] flex flex-col items-center justify-center text-center overflow-hidden">
             {/* Top Verified Accent Tag */}
             <div className="inline-flex items-center gap-1.5 bg-[#FFE600] border border-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-black uppercase tracking-wider text-black mb-2 shadow-[1px_1px_0px_#000]">
               <span className="w-1.5 h-1.5 bg-black rounded-full animate-pulse" />
-              <span>Lead Developer</span>
+              <span>Developer</span>
             </div>
 
             {/* Developer Alex James Heading */}
-            <div className="flex items-center justify-center gap-1.5 mb-2">
-              <h2 className="font-black text-lg sm:text-2xl text-black tracking-tight uppercase leading-tight">
-                Developer Alex James
+            <div className="flex flex-col items-center justify-center gap-1 mb-2">
+              <h2 className="font-black text-xl sm:text-2xl text-black tracking-tight uppercase leading-tight flex items-center justify-center gap-1.5">
+                <span>ALEX JAMES</span>
+                <button
+                  type="button"
+                  onClick={triggerHeartRain}
+                  className="text-red-500 text-base sm:text-xl inline-block transition-transform hover:scale-125 active:scale-90 duration-200 cursor-pointer focus:outline-none"
+                  title="Click for Heart Rain Animation!"
+                >
+                  ♥️
+                </button>
               </h2>
-              <span className="text-red-500 text-base sm:text-xl inline-block transition-transform hover:scale-125 duration-200">
-                ♥️
-              </span>
             </div>
 
             {/* Description */}
@@ -778,6 +819,26 @@ const App: React.FC = () => {
         info={inAppDownloadInfo}
         onClose={() => setInAppDownloadInfo(null)}
       />
+
+      {/* Heart Rain Animation Overlay */}
+      {heartParticles.length > 0 && (
+        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+          {heartParticles.map((p) => (
+            <div
+              key={p.id}
+              className="absolute animate-soft-heart-rain select-none"
+              style={{
+                left: `${p.x}px`,
+                top: `-50px`,
+                fontSize: `${p.size}px`,
+                animationDuration: `${p.speed}s`,
+              }}
+            >
+              {p.emoji}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

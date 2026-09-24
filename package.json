@@ -12,15 +12,21 @@
   },
   "dependencies": {
     "@google/genai": "^1.27.0",
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.8.0",
+    "@types/three": "^0.186.0",
     "express": "^5.2.1",
     "framer-motion": "^13.4.2",
     "lucide-react": "^1.47.0",
+    "meshline": "^3.3.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-fast-marquee": "^1.6.5",
     "react-icons": "^5.7.0",
     "react-markdown": "^10.1.0",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "three": "^0.186.0",
+    "three-stdlib": "^2.36.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
