@@ -26,7 +26,6 @@ import {
   InAppDownloadInfo,
   LogoLoop,
   FlipCard,
-  EchoText,
   GitHubIcon,
 } from './components';
 import {
