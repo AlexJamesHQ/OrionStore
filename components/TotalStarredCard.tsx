@@ -1,6 +1,5 @@
 import React from 'react';
-import { StarIcon } from './Icons';
-import { BookOpen, Package, RefreshCw } from 'lucide-react';
+import { BookOpen, Package, RefreshCw, Heart } from 'lucide-react';
 
 interface StatsLineCardProps {
   publicCount: number;
@@ -81,7 +80,7 @@ export const TotalStarredCard: React.FC<StatsLineCardProps> = ({
             </div>
           </button>
 
-          {/* 2. STARRED REPOSITORIES (Second) */}
+          {/* 2. FAVORITE REPOSITORIES (Second) */}
           <button
             onClick={() => onSelectTab('starred')}
             className={`p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border-2 sm:border-[2.5px] border-black text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
@@ -91,15 +90,15 @@ export const TotalStarredCard: React.FC<StatsLineCardProps> = ({
             }`}
           >
             <div className="flex items-center gap-1 sm:gap-1.5 mb-1 text-black font-black text-[10px] sm:text-xs uppercase tracking-tight sm:tracking-wider">
-              <StarIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 fill-amber-500 flex-shrink-0" />
-              <span>STARRED</span>
+              <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 flex-shrink-0" />
+              <span>FAVORITES</span>
             </div>
             <div className="font-black text-2xl sm:text-4xl md:text-5xl text-[#FF5E00] font-mono tabular-nums leading-none my-0.5 sm:my-1">
               {starredCount}
             </div>
             <div className="text-[9px] sm:text-[11px] font-mono font-bold text-neutral-700 uppercase tracking-tight">
-              <span className="sm:hidden">STARRED</span>
-              <span className="hidden sm:inline">FAVORITES</span>
+              <span className="sm:hidden">FAVORITE</span>
+              <span className="hidden sm:inline">REPOSITORIES</span>
             </div>
           </button>
 
@@ -132,7 +131,7 @@ export const TotalStarredCard: React.FC<StatsLineCardProps> = ({
           <div className="flex items-center gap-2">
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 border border-black/40"></span>
             <span className="font-bold text-neutral-800">
-              ACTIVE VIEW: {activeTab === 'public' ? 'PUBLIC REPOSITORIES' : activeTab === 'starred' ? 'STARRED REPOSITORIES' : 'APK DOWNLOAD RELEASES'}
+              ACTIVE VIEW: {activeTab === 'public' ? 'PUBLIC REPOSITORIES' : activeTab === 'starred' ? 'FAVORITE REPOSITORIES' : 'APK DOWNLOAD RELEASES'}
             </span>
           </div>
 

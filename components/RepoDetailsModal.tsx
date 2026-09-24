@@ -312,20 +312,9 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
                   <span className="font-bold truncate text-black">{apkRelease.apkName}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[11px] font-bold">
-                  {apkRelease.sizeBytes ? (
-                    <span className="bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-300">
-                      {formatFileSize(apkRelease.sizeBytes)}
-                    </span>
-                  ) : (
-                    <span className="bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-300">
-                      APK Package
-                    </span>
-                  )}
-                  {apkRelease.downloadCount ? (
-                    <span className="bg-[#FFE600]/40 px-1.5 py-0.5 rounded border border-black/30">
-                      📥 {apkRelease.downloadCount}
-                    </span>
-                  ) : null}
+                  <span className="bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-300">
+                    APK Package
+                  </span>
                 </div>
               </div>
 
@@ -343,31 +332,7 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
               )}
             </div>
 
-            {/* Release Notes (Expandable if available) */}
-            {apkRelease.releaseNotes && (
-              <div className="bg-white border border-black rounded-xl p-2.5">
-                <button
-                  type="button"
-                  onClick={() => setShowReleaseNotes(!showReleaseNotes)}
-                  className="w-full flex items-center justify-between text-xs font-mono font-bold text-neutral-700 cursor-pointer"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Sparkles className="w-3 h-3 text-[#6B21A8]" />
-                    <span>What's New in this APK</span>
-                  </span>
-                  {showReleaseNotes ? (
-                    <ChevronUp className="w-3.5 h-3.5" />
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  )}
-                </button>
-                {showReleaseNotes && (
-                  <div className="mt-2 pt-2 border-t border-neutral-200 text-xs font-mono text-neutral-700 leading-relaxed whitespace-pre-wrap">
-                    {cleanReleaseNotes(apkRelease.releaseNotes)}
-                  </div>
-                )}
-              </div>
-            )}
+
 
             {/* Realistic Animated Download Progress Display */}
             <AnimatePresence>
@@ -505,26 +470,12 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-white border-2 border-black rounded-xl p-3 text-center shadow-[2px_2px_0px_#000]">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <StarIcon className="w-4 h-4 text-amber-500 fill-amber-500" />
-              <span className="text-xs font-mono font-bold text-neutral-600 uppercase">Stars</span>
-            </div>
-            <div className="font-black text-xl text-black font-mono tabular-nums">
-              {formatCompactNumber(repo.stargazers_count)}
-            </div>
-          </div>
-
-          <div className="bg-white border-2 border-black rounded-xl p-3 text-center shadow-[2px_2px_0px_#000]">
-            <div className="text-xs font-mono font-bold text-neutral-600 uppercase mb-1">
-              Primary Language
-            </div>
-            <div className="font-black text-base text-black font-mono truncate">
-              {repo.language || 'Multi'}
-            </div>
-          </div>
+        {/* Primary Language Info */}
+        <div className="bg-white border-2 border-black rounded-xl p-3 mb-4 text-center shadow-[2px_2px_0px_#000] flex items-center justify-between font-mono text-xs">
+          <span className="font-bold text-neutral-600 uppercase">Primary Language:</span>
+          <span className="font-black text-sm text-[#6B21A8] bg-[#FFE600]/30 px-2.5 py-0.5 border border-black/40 rounded-md">
+            {repo.language || 'Multi-Language'}
+          </span>
         </div>
 
         {/* Topics */}

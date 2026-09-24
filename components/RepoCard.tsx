@@ -391,12 +391,6 @@ export const RepoCard: React.FC<RepoCardProps> = ({
               </div>
             )}
 
-            {/* Download Count Badge */}
-            {downloadCount !== null && downloadCount > 0 && (
-              <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border border-black bg-white text-black shadow-[1px_1px_0px_#000]">
-                {formatCompactNumber(downloadCount)} ↓
-              </span>
-            )}
           </div>
 
           <span className="font-mono text-xs text-neutral-500 truncate block">
@@ -482,15 +476,19 @@ export const RepoCard: React.FC<RepoCardProps> = ({
       )}
 
       {/* Row of Meta-Information: Stars + Category + Timestamp */}
-      <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-neutral-800 pt-2.5 border-t border-neutral-100">
-        {/* Star Icon + Count */}
-        <div className="flex items-center gap-1.5 tabular-nums font-mono">
-          <StarIcon className="w-3.5 h-3.5 text-amber-500 fill-amber-500 flex-shrink-0" />
-          <span className="text-black font-semibold text-xs sm:text-sm">
-            {formatCompactNumber(repo.stargazers_count)}
-          </span>
-          <span className="text-neutral-500 text-[11px] font-mono">stars</span>
-        </div>
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs font-bold text-neutral-800 pt-2.5 border-t border-neutral-100">
+        {/* Star Action on GitHub (Shown everywhere!) */}
+        <a
+          href={repo.html_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 active:scale-95 border border-amber-300 rounded-lg text-[11px] font-mono font-bold text-amber-900 transition-all cursor-pointer shadow-[1px_1px_0px_#f59e0b]"
+          title="Star this repository on GitHub"
+        >
+          <StarIcon className="w-3.5 h-3.5 text-amber-500 fill-amber-400 flex-shrink-0" />
+          <span>Star on GitHub</span>
+        </a>
 
         {/* Category Pill */}
         <div className="flex items-center gap-1 text-[11px] font-mono text-neutral-600">

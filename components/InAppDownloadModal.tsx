@@ -217,23 +217,13 @@ export const InAppDownloadModal: React.FC<InAppDownloadModalProps> = ({ isOpen, 
             <div className="bg-[#FAF6EE] border border-black/30 rounded-xl p-3 font-mono text-xs space-y-1">
               <div className="flex justify-between items-center">
                 <span className="font-bold text-black truncate">{info.apkName}</span>
-                {info.sizeBytes && (
-                  <span className="text-neutral-500 font-bold ml-2">
-                    {formatFileSize(info.sizeBytes)}
-                  </span>
-                )}
               </div>
               <p className="text-[11px] text-neutral-600">
                 Direct package file. Supported on Chrome, Microsoft Edge, and all Android browsers.
               </p>
             </div>
 
-            {info.releaseNotes && (
-              <div className="bg-white border border-black/20 rounded-xl p-2.5 max-h-24 overflow-y-auto brutal-scroll font-mono text-[11px] text-neutral-700 leading-relaxed whitespace-pre-wrap">
-                <p className="font-black text-black uppercase text-[10px] mb-1">Release Notes:</p>
-                <div>{renderTextWithLinks(info.releaseNotes)}</div>
-              </div>
-            )}
+
           </div>
 
           {/* DYNAMIC DOWNLOAD ANIMATION DISPLAY */}
@@ -264,7 +254,7 @@ export const InAppDownloadModal: React.FC<InAppDownloadModalProps> = ({ isOpen, 
                         Downloading Package...
                       </p>
                       <p className="font-mono text-[11px] text-neutral-600 font-semibold">
-                        Speed: {downloadSpeed} • {progress}%
+                        Progress: {progress}%
                       </p>
                     </div>
                   </div>
