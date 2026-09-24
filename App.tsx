@@ -500,6 +500,8 @@ const App: React.FC = () => {
             setSelectedCategory('All');
           }}
           displayName={displayName}
+          isRefreshing={isRefreshing || isLoading}
+          onRefresh={() => handleRefresh(currentUsername)}
         />
 
         {/* Repository Filter Search (EMPTY by default) */}
