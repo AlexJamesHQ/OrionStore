@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Repository, GitHubUserProfile } from './types';
+import { Repository, GitHubUserProfile, hasActualApk } from './types';
 import {
   DEFAULT_USER_PROFILE,
   ALEX_PUBLIC_REPOSITORIES,
@@ -29,6 +29,7 @@ import {
   FlipCard,
   GitHubIcon,
 } from './components';
+import { ApkFilterMode } from './components/MenuDrawer';
 import {
   Search,
   SlidersHorizontal,
@@ -74,7 +75,8 @@ const App: React.FC = () => {
   // Category and sorting filters
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'stars' | 'name'>('stars');
-  const [hideNonApk, setHideNonApk] = useState(false);
+  const [apkFilterMode, setApkFilterMode] = useState<ApkFilterMode>('all');
+  const hideNonApk = apkFilterMode === 'apk_only';
 
   // Modals state
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -118,18 +120,47 @@ const App: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await fetchGitHubUserData(cleanUser, fresh);
-      setUserProfile(data.profile);
-      setPublicRepos(data.publicRepos);
-      setStarredRepos(data.starredRepos);
-      setCurrentUsername(data.profile.login);
+      const isAlex = cleanUser.toLowerCase() === 'alexjameshq';
+
+      const nextPublic = (data.publicRepos && Array.isArray(data.publicRepos) && data.publicRepos.length > 0)
+        ? data.publicRepos
+        : (isAlex ? ALEX_PUBLIC_REPOSITORIES : (data.publicRepos || []));
+
+      const nextStarred = (data.starredRepos && Array.isArray(data.starredRepos) && data.starredRepos.length > 0)
+        ? data.starredRepos
+        : (isAlex ? INITIAL_REPOSITORIES : (data.starredRepos || []));
+
+      const nextProfile: GitHubUserProfile = data.profile || {
+        login: cleanUser,
+        name: cleanUser,
+        avatar_url: `https://github.com/${cleanUser}.png`,
+        html_url: `https://github.com/${cleanUser}`,
+        bio: `GitHub Profile for ${cleanUser}`,
+        company: null,
+        location: null,
+        blog: null,
+        public_repos: nextPublic.length,
+        followers: 0,
+        following: 0,
+        starred_count: nextStarred.length,
+      };
+
+      setUserProfile(nextProfile);
+      setPublicRepos(nextPublic);
+      setStarredRepos(nextStarred);
+      setCurrentUsername(nextProfile.login || cleanUser);
+
+      // Reset filters so ALL repos are shown for newly loaded user
+      setActiveTab('public');
+      setApkFilterMode('all');
+      setSelectedCategory('All');
+      setRepoFilterQuery('');
 
       // Now sync updates specifically for this searched user with their real repositories
-      const upInfo = await checkForAppUpdates(data.profile.login || cleanUser, [...data.publicRepos, ...data.starredRepos]).catch(() => null);
+      const upInfo = await checkForAppUpdates(nextProfile.login || cleanUser, [...nextPublic, ...nextStarred]).catch(() => null);
       if (upInfo) {
         setUpdateInfo(upInfo);
       }
-      setSelectedCategory('All');
-      setRepoFilterQuery('');
     } catch {
       // Gracefully retain existing state
     } finally {
@@ -142,11 +173,36 @@ const App: React.FC = () => {
     setIsRefreshing(true);
     try {
       const data = await fetchGitHubUserData(user, true);
-      setUserProfile(data.profile);
-      setPublicRepos(data.publicRepos);
-      setStarredRepos(data.starredRepos);
-      setCurrentUsername(data.profile.login);
-      const info = await checkForAppUpdates(data.profile.login || user, [...data.publicRepos, ...data.starredRepos]);
+      const isAlex = user.toLowerCase() === 'alexjameshq';
+
+      const nextPublic = (data.publicRepos && Array.isArray(data.publicRepos) && data.publicRepos.length > 0)
+        ? data.publicRepos
+        : (isAlex ? ALEX_PUBLIC_REPOSITORIES : (data.publicRepos || []));
+
+      const nextStarred = (data.starredRepos && Array.isArray(data.starredRepos) && data.starredRepos.length > 0)
+        ? data.starredRepos
+        : (isAlex ? INITIAL_REPOSITORIES : (data.starredRepos || []));
+
+      const nextProfile: GitHubUserProfile = data.profile || {
+        login: user,
+        name: user,
+        avatar_url: `https://github.com/${user}.png`,
+        html_url: `https://github.com/${user}`,
+        bio: `GitHub Profile for ${user}`,
+        company: null,
+        location: null,
+        blog: null,
+        public_repos: nextPublic.length,
+        followers: 0,
+        following: 0,
+        starred_count: nextStarred.length,
+      };
+
+      setUserProfile(nextProfile);
+      setPublicRepos(nextPublic);
+      setStarredRepos(nextStarred);
+      setCurrentUsername(nextProfile.login || user);
+      const info = await checkForAppUpdates(nextProfile.login || user, [...nextPublic, ...nextStarred]);
       setUpdateInfo(info);
     } catch {
       // ignore
@@ -250,15 +306,7 @@ const App: React.FC = () => {
     const combined = [...publicRepos, ...starredRepos];
     const seen = new Set<string>();
     return combined.filter((r) => {
-      const isApk =
-        Boolean(r.latestRelease) ||
-        r.category === 'Android & APK' ||
-        Boolean(r.topics?.some((t) => t.toLowerCase().includes('apk'))) ||
-        Boolean(r.description?.toLowerCase().includes('apk')) ||
-        ['swiftslate', 'archivetune', 'kodaa', 'koda', 'orionstore', 'orion-store', 'lastwave-native', 'nuviomobile', 'clockyou', 'rustdesk'].includes(
-          r.name.toLowerCase()
-        );
-      if (!isApk) return false;
+      if (!hasActualApk(r)) return false;
       if (seen.has(r.full_name)) return false;
       seen.add(r.full_name);
       return true;
@@ -270,20 +318,22 @@ const App: React.FC = () => {
     const combined = [...publicRepos, ...starredRepos];
     const seen = new Set<string>();
     return combined.filter((r) => {
-      const isApk =
-        Boolean(r.latestRelease) ||
-        r.category === 'Android & APK' ||
-        Boolean(r.topics?.some((t) => t.toLowerCase().includes('apk'))) ||
-        Boolean(r.description?.toLowerCase().includes('apk')) ||
-        ['swiftslate', 'archivetune', 'kodaa', 'koda', 'orionstore', 'orion-store', 'lastwave-native', 'nuviomobile', 'clockyou', 'rustdesk'].includes(
-          r.name.toLowerCase()
-        );
-      if (!isApk) return false;
+      if (!hasActualApk(r)) return false;
       if (seen.has(r.full_name)) return false;
       seen.add(r.full_name);
       return true;
     }).length;
   }, [publicRepos, starredRepos]);
+
+  // Counts for the currently active tab's list
+  const currentApkCount = useMemo(
+    () => currentBaseList.filter((r) => hasActualApk(r)).length,
+    [currentBaseList]
+  );
+  const currentNonApkCount = useMemo(
+    () => currentBaseList.filter((r) => !hasActualApk(r)).length,
+    [currentBaseList]
+  );
 
   // Extract Categories available in current list
   const availableCategories = useMemo(() => {
@@ -310,15 +360,28 @@ const App: React.FC = () => {
         const matchesCategory =
           selectedCategory === 'All' || repo.category === selectedCategory;
 
-        const matchesApk = !hideNonApk || Boolean(repo.latestRelease);
+        const isApk = hasActualApk(repo);
+        let matchesApkFilter = true;
+        if (apkFilterMode === 'apk_only') {
+          matchesApkFilter = isApk;
+        } else if (apkFilterMode === 'non_apk_only') {
+          // "আর ওখানে কিলিক করলে apk ছারা যেগুলো আছে ওই গুলো দেখাবে"
+          matchesApkFilter = !isApk;
+        }
 
-        return matchesQuery && matchesCategory && matchesApk;
+        return matchesQuery && matchesCategory && matchesApkFilter;
       })
       .sort((a, b) => {
+        // "যাতে যেগুলো apk আছে সব প্রথমে দেখাবে" - Repositories with authentic APK are ALWAYS placed first!
+        const aHasApk = hasActualApk(a);
+        const bHasApk = hasActualApk(b);
+        if (aHasApk && !bHasApk) return -1;
+        if (!aHasApk && bHasApk) return 1;
+
         if (sortBy === 'stars') return b.stargazers_count - a.stargazers_count;
         return a.name.localeCompare(b.name);
       });
-  }, [currentBaseList, repoFilterQuery, selectedCategory, sortBy]);
+  }, [currentBaseList, repoFilterQuery, selectedCategory, sortBy, apkFilterMode]);
 
   // Display Name: dynamic clean name of the active user
   const displayName = (userProfile.name || userProfile.login).toUpperCase();
@@ -409,8 +472,8 @@ const App: React.FC = () => {
 
         {/* The 3 Stats in ONE BEAUTIFUL CLEAN LINE: Public (1st), Starred (2nd), Favorites/APK (3rd) */}
         <TotalStarredCard
-          publicCount={publicRepos.length}
-          starredCount={starredRepos.length}
+          publicCount={Math.max(userProfile.public_repos || 0, publicRepos.length)}
+          starredCount={Math.max(userProfile.starred_count || 0, starredRepos.length)}
           apkCount={totalApkCount}
           activeTab={activeTab}
           onSelectTab={(tab) => {
@@ -596,9 +659,9 @@ const App: React.FC = () => {
             perspective={1100}
             stiffness={170}
             damping={20}
-            width={300}
-            height={400}
-            radius={22}
+            width={260}
+            height={340}
+            radius={20}
             background="#27272a"
             color="#f5f5f5"
             shadow
@@ -608,43 +671,50 @@ const App: React.FC = () => {
           />
         </motion.div>
 
-        {/* Bottom Motion Echo Developer Banner */}
-        <footer className="mt-14 mb-10 w-full select-none">
-          <div className="w-full p-6 sm:p-8 bg-black border-[3px] border-black rounded-2xl shadow-[6px_6px_0px_#FFE600] flex flex-col items-center justify-center text-center overflow-hidden">
+        {/* Bottom Motion Echo Developer Banner - Responsive Mobile-Optimized Neobrutalist Card */}
+        <footer className="mt-10 sm:mt-14 mb-8 sm:mb-10 w-full select-none px-1">
+          <div className="w-full max-w-lg mx-auto p-4 sm:p-6 bg-white border-[3px] border-black rounded-2xl sm:rounded-3xl shadow-[4px_4px_0px_#000] sm:shadow-[5px_5px_0px_#000] flex flex-col items-center justify-center text-center overflow-hidden">
+            {/* Top Verified Accent Tag */}
+            <div className="inline-flex items-center gap-1.5 bg-[#FFE600] border border-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-black uppercase tracking-wider text-black mb-2 shadow-[1px_1px_0px_#000]">
+              <span className="w-1.5 h-1.5 bg-black rounded-full animate-pulse" />
+              <span>Lead Developer</span>
+            </div>
+
             {/* Developer Alex James Heading */}
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <span className="w-3 h-3 bg-[#FFE600] border-2 border-black rounded-full inline-block animate-pulse"></span>
-              <h2 className="font-black text-2xl sm:text-3xl text-white tracking-tight uppercase">
+            <div className="flex items-center justify-center gap-1.5 mb-2">
+              <h2 className="font-black text-lg sm:text-2xl text-black tracking-tight uppercase leading-tight">
                 Developer Alex James
               </h2>
-              <span className="text-red-500 text-2xl inline-block transition-transform hover:scale-125 duration-200">♥️</span>
+              <span className="text-red-500 text-base sm:text-xl inline-block transition-transform hover:scale-125 duration-200">
+                ♥️
+              </span>
             </div>
 
             {/* Description */}
-            <p className="font-mono text-xs sm:text-sm text-neutral-300 leading-relaxed font-medium max-w-xl mb-5">
+            <p className="font-mono text-xs sm:text-[13px] text-neutral-700 leading-relaxed font-medium max-w-md mb-3 px-1">
               Crafted with a minimalist Neobrutalist design philosophy for rapid GitHub repository discovery, starred collections, and direct Android APK package releases.
             </p>
 
-            {/* Tags */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-6 pt-4 border-t border-dashed border-neutral-800 w-full max-w-md">
-              <span className="text-[11px] font-mono font-bold bg-[#1e1e1e] text-neutral-200 border border-neutral-700 px-3 py-1 rounded-lg shadow-[1px_1px_0px_#000]">
+            {/* Tags - Wraps beautifully on mobile */}
+            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mb-4">
+              <span className="text-[10px] sm:text-[11px] font-mono font-bold bg-[#FAF6EE] text-black border border-black px-2.5 py-0.5 rounded-lg shadow-[1px_1px_0px_#000]">
                 Android APKs
               </span>
-              <span className="text-[11px] font-mono font-bold bg-[#1e1e1e] text-neutral-200 border border-neutral-700 px-3 py-1 rounded-lg shadow-[1px_1px_0px_#000]">
+              <span className="text-[10px] sm:text-[11px] font-mono font-bold bg-[#FAF6EE] text-black border border-black px-2.5 py-0.5 rounded-lg shadow-[1px_1px_0px_#000]">
                 Neobrutalism
               </span>
-              <span className="text-[11px] font-mono font-bold bg-[#FFE600] text-black border border-black px-3 py-1 rounded-lg shadow-[2px_2px_0px_#000]">
+              <span className="text-[10px] sm:text-[11px] font-mono font-bold bg-[#FFE600] text-black border border-black px-2.5 py-0.5 rounded-lg shadow-[1.5px_1.5px_0px_#000]">
                 Open Source
               </span>
             </div>
 
-            {/* Action Links */}
-            <div className="flex items-center justify-center gap-3 text-xs font-bold font-mono">
+            {/* Action Links: Balanced 50/50 Grid on Mobile */}
+            <div className="grid grid-cols-2 gap-2.5 w-full max-w-xs sm:max-w-sm pt-3 border-t-2 border-dashed border-neutral-200">
               <a
                 href="https://github.com/AlexJamesHQ"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 bg-white text-black border-2 border-black rounded-xl shadow-[3px_3px_0px_#FFE600] hover:bg-neutral-100 hover:scale-105 active:translate-x-[1px] active:translate-y-[1px] flex items-center gap-1.5 transition-all cursor-pointer"
+                className="w-full py-2.5 px-3 bg-white text-black border-2 border-black rounded-xl shadow-[2.5px_2.5px_0px_#000] hover:bg-neutral-100 hover:scale-[1.02] active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center gap-1.5 text-xs font-bold font-mono uppercase transition-all cursor-pointer"
               >
                 <GitHubIcon className="w-4 h-4 inline" />
                 <span>GitHub</span>
@@ -654,10 +724,10 @@ const App: React.FC = () => {
                 href="https://alex-james.vercel.app"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 bg-[#FFE600] text-black border-2 border-black rounded-xl shadow-[3px_3px_0px_#ffffff] hover:bg-yellow-300 hover:scale-105 active:translate-x-[1px] active:translate-y-[1px] flex items-center gap-1.5 transition-all cursor-pointer"
+                className="w-full py-2.5 px-3 bg-[#FFE600] text-black border-2 border-black rounded-xl shadow-[2.5px_2.5px_0px_#000] hover:bg-yellow-300 hover:scale-[1.02] active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center gap-1.5 text-xs font-black font-mono uppercase transition-all cursor-pointer"
               >
                 <span>Portfolio</span>
-                <ArrowUpRight className="w-4 h-4 inline" />
+                <ArrowUpRight className="w-4 h-4 inline stroke-[2.5]" />
               </a>
             </div>
           </div>
@@ -676,8 +746,10 @@ const App: React.FC = () => {
         availableCategories={availableCategories}
         sortBy={sortBy}
         onSelectSortBy={setSortBy}
-        hideNonApk={hideNonApk}
-        onToggleHideNonApk={setHideNonApk}
+        apkFilterMode={apkFilterMode}
+        onSelectApkFilterMode={setApkFilterMode}
+        hideNonApk={apkFilterMode === 'apk_only'}
+        onToggleHideNonApk={(hide) => setApkFilterMode(hide ? 'apk_only' : 'all')}
         onOpenTelegram={() => {}}
         totalStarredCount={starredRepos.length}
         hasUpdate={Boolean(updateInfo?.hasUpdate)}

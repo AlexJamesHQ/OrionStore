@@ -2,9 +2,56 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { INITIAL_REPOSITORIES, ALEX_PUBLIC_REPOSITORIES } from './data/sampleRepos';
+import { hasActualApk } from './types';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const SERVER_KNOWN_APK_MAP = new Map<string, any>();
+[...ALEX_PUBLIC_REPOSITORIES, ...INITIAL_REPOSITORIES].forEach((r) => {
+  if (r.latestRelease && (r.latestRelease.apkName || r.latestRelease.downloadUrl)) {
+    SERVER_KNOWN_APK_MAP.set(r.name.toLowerCase(), r.latestRelease);
+    if (r.full_name) SERVER_KNOWN_APK_MAP.set(r.full_name.toLowerCase(), r.latestRelease);
+  }
+});
+
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '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';
+
+function getGitHubAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github.v3+json',
+    'User-Agent': 'AI-Studio-Applet/1.0',
+  };
+  if (GITHUB_TOKEN) {
+    headers['Authorization'] = `Bearer ${GITHUB_TOKEN}`;
+  }
+  return headers;
+}
+
+function enrichServerRepo(r: any) {
+  const verified =
+    (r.latestRelease && (r.latestRelease.apkName || r.latestRelease.downloadUrl))
+      ? r.latestRelease
+      : SERVER_KNOWN_APK_MAP.get((r.name || '').toLowerCase()) ||
+        SERVER_KNOWN_APK_MAP.get((r.full_name || '').toLowerCase()) ||
+        (hasActualApk(r)
+          ? {
+              tagName: 'Latest APK',
+              name: `${r.name} Android Package`,
+              apkName: `${r.name}.apk`,
+              downloadUrl: `${r.html_url}/releases`,
+              sizeBytes: undefined,
+            }
+          : null);
+
+  const isApk = Boolean(verified) || hasActualApk(r);
+  return {
+    ...r,
+    latestRelease: verified,
+    category: isApk ? 'Android & APK' : r.category || determineCategory(r),
+  };
+}
 
 // 10-minute in-memory cache to ensure instantaneous responses and avoid unnecessary network trips
 interface CacheEntry {
@@ -248,28 +295,8 @@ async function scrapeGitHubUser(cleanUser: string) {
     })
   );
 
-  // Ensure any Android/APK apps have an APK release defined
-  [...publicRepos, ...starredRepos].forEach((r) => {
-    const isApk =
-      Boolean(r.latestRelease) ||
-      r.category === 'Android & APK' ||
-      Boolean(r.topics?.some((t: string) => t.toLowerCase().includes('apk'))) ||
-      Boolean(r.description?.toLowerCase().includes('apk')) ||
-      ['archivetune', 'nuviomobile', 'koda', 'clockyou', 'rustdesk', 'android-titanium-browser', 'microg-ungoogled-chromium', 'kurodo'].includes(
-        r.name.toLowerCase()
-      );
-    if (isApk && !r.latestRelease) {
-      r.latestRelease = {
-        tagName: 'Latest APK',
-        name: `${r.name} Android Package`,
-        publishedAt: new Date().toISOString(),
-        apkName: `${r.name}.apk`,
-        downloadUrl: `${r.html_url}/releases`,
-        sizeBytes: 15000000,
-      };
-      r.category = 'Android & APK';
-    }
-  });
+  const enrichedPublic = publicRepos.map(enrichServerRepo);
+  const enrichedStarred = starredRepos.map(enrichServerRepo);
 
   return {
     profile: {
@@ -281,15 +308,15 @@ async function scrapeGitHubUser(cleanUser: string) {
       company: null,
       location: null,
       blog: null,
-      public_repos: publicRepos.length,
+      public_repos: enrichedPublic.length,
       followers: followersCount,
       following: followingCount,
-      starred_count: starredRepos.length,
+      starred_count: enrichedStarred.length,
     },
-    publicRepos,
-    starredRepos,
-    publicCount: publicRepos.length,
-    starredCount: starredRepos.length,
+    publicRepos: enrichedPublic,
+    starredRepos: enrichedStarred,
+    publicCount: enrichedPublic.length,
+    starredCount: enrichedStarred.length,
   };
 }
 
@@ -313,12 +340,7 @@ async function startServer() {
   app.get('/api/latest-app-update', async (req, res) => {
     const primaryRepos = ['SwiftSlate', 'Koda', 'Nuviomobile', 'ArchiveTune'];
     const owner = 'AlexJamesHQ';
-    const authHeader: Record<string, string> = {
-      Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'AI-Studio-Applet',
-    };
-    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-    if (token) authHeader['Authorization'] = `Bearer ${token}`;
+    const authHeader = getGitHubAuthHeaders();
 
     for (const repo of primaryRepos) {
       try {
@@ -612,9 +634,9 @@ async function startServer() {
     }
   });
 
-  // Fast & Resilient GitHub User API
-  app.get('/api/github-user', async (req, res) => {
-    const rawUser = (req.query.user as string) || '';
+  // Fast & Resilient GitHub User Handler
+  const handleGetGitHubUser = async (req: express.Request, res: express.Response) => {
+    const rawUser = (req.query.user as string) || (req.params.username as string) || '';
     const cleanUser = extractGitHubUsername(rawUser);
 
     if (!cleanUser) {
@@ -629,15 +651,7 @@ async function startServer() {
     }
 
     try {
-      // Check if GitHub token is present for higher rate limits
-      const authHeader: Record<string, string> = {
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'AI-Studio-Applet',
-      };
-      const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-      if (token) {
-        authHeader['Authorization'] = `Bearer ${token}`;
-      }
+      const authHeader = getGitHubAuthHeaders();
 
       // Try REST API first
       const userRes = await fetch(`https://api.github.com/users/${encodeURIComponent(cleanUser)}`, {
@@ -656,24 +670,31 @@ async function startServer() {
           Array.isArray(reposData)
           ? reposData.map(async (item: any) => {
               let latestRelease = null;
-              try {
-                  const relRes = await fetch(`https://api.github.com/repos/${item.full_name}/releases`, { headers: authHeader });
+              if (
+                item.name?.toLowerCase().includes('apk') ||
+                item.name?.toLowerCase().includes('android') ||
+                item.description?.toLowerCase().includes('apk') ||
+                item.description?.toLowerCase().includes('android') ||
+                item.description?.toLowerCase().includes('release') ||
+                item.has_downloads
+              ) {
+                try {
+                  const relRes = await fetch(`https://api.github.com/repos/${item.full_name}/releases/latest`, { headers: authHeader });
                   if (relRes.ok) {
-                      const rels = await relRes.json();
-                      if (Array.isArray(rels) && rels.length > 0) {
-                          const rel = rels.find((r: any) => r.assets?.some((a: any) => a.name?.toLowerCase().endsWith('.apk')));
-                          if (rel) {
-                              latestRelease = {
-                                  tagName: rel.tag_name || rel.name,
-                                  apkName: rel.assets.find((a: any) => a.name?.toLowerCase().endsWith('.apk')).name,
-                                  downloadUrl: rel.assets.find((a: any) => a.name?.toLowerCase().endsWith('.apk')).browser_download_url,
-                                  sizeBytes: rel.assets.find((a: any) => a.name?.toLowerCase().endsWith('.apk')).size,
-                                  body: rel.body,
-                              };
-                          }
-                      }
+                    const rel = await relRes.json();
+                    const apkAsset = rel.assets?.find((a: any) => a.name?.toLowerCase().endsWith('.apk'));
+                    if (apkAsset) {
+                      latestRelease = {
+                        tagName: rel.tag_name || rel.name,
+                        apkName: apkAsset.name,
+                        downloadUrl: apkAsset.browser_download_url,
+                        sizeBytes: apkAsset.size,
+                        body: rel.body,
+                      };
+                    }
                   }
-              } catch (e) { /* ignore */ }
+                } catch (e) { /* ignore */ }
+              }
 
               return {
                 id: item.id,
@@ -758,12 +779,15 @@ async function startServer() {
           };
         }
 
+        const enrichedPublic = publicRepos.map(enrichServerRepo);
+        const enrichedStarred = starredRepos.map(enrichServerRepo);
+
         const result = {
           profile: profileObj,
-          publicRepos,
-          starredRepos,
-          publicCount: publicRepos.length,
-          starredCount: starredRepos.length,
+          publicRepos: enrichedPublic,
+          starredRepos: enrichedStarred,
+          publicCount: enrichedPublic.length,
+          starredCount: enrichedStarred.length,
         };
 
         userCache.set(cacheKey, { timestamp: Date.now(), data: result });
@@ -805,7 +829,10 @@ async function startServer() {
         return res.json(fallback);
       }
     }
-  });
+  };
+
+  app.get('/api/github-user', handleGetGitHubUser);
+  app.get('/api/repos/:username', handleGetGitHubUser);
 
   // Vite development mode vs Production static serving
   if (process.env.NODE_ENV === 'production') {
