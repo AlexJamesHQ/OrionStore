@@ -1,11 +1,20 @@
-import { hasActualApk } from '../types';
-
-function enrichRepo(r: any) {
-  const isApk = hasActualApk(r);
-  return { ...r, latestRelease: r.latestRelease || null, category: isApk ? 'Android & APK' : r.category || 'Tools & Utilities' };
+function isLikelyApk(repo: any): boolean {
+  const name = String(repo?.name || '').toLowerCase();
+  const desc = String(repo?.description || '').toLowerCase();
+  const topics = Array.isArray(repo?.topics) ? repo.topics.map((x: any) => String(x).toLowerCase()) : [];
+  return name.includes('apk') || desc.includes('apk') || desc.includes('android app') || topics.some((x: string) => x === 'apk' || x === 'android' || x.includes('android-app'));
 }
 
-function cleanUsername(value: string) {
+function enrichRepo(r: any) {
+  const isApk = isLikelyApk(r);
+  return {
+    ...r,
+    latestRelease: r.latestRelease || null,
+    category: isApk ? 'Android & APK' : r.category || 'Tools & Utilities',
+  };
+}
+
+function cleanUsername(value: string): string {
   return value
     .trim()
     .replace(/^https?:\/\//i, '')
@@ -16,56 +25,69 @@ function cleanUsername(value: string) {
     .trim();
 }
 
-export default async function handler(req: any, res: any) {
-  res.setHeader('Cache-Control', 'no-store, max-age=0');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store, max-age=0',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
 
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+export async function OPTIONS(): Promise<Response> {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
 
-  const cleanUser = cleanUsername(String(req.query?.user || 'AlexJamesHQ'));
-  if (!cleanUser) return res.status(400).json({ error: 'GitHub username is required' });
+export async function GET(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const cleanUser = cleanUsername(url.searchParams.get('user') || 'AlexJamesHQ');
+  if (!cleanUser) return json({ error: 'GitHub username is required' }, 400);
 
   const baseHeaders: Record<string, string> = {
     Accept: 'application/vnd.github+json',
-    'User-Agent': 'OrionStore',
+    'User-Agent': 'OrionStore/1.0',
   };
-  const token = process.env.GITHUB_TOKEN?.trim();
-  const authHeaders = token ? { ...baseHeaders, Authorization: `Bearer ${token}` } : baseHeaders;
+  const token = String(process.env.GITHUB_TOKEN || '').trim();
+  const authHeaders = token
+    ? { ...baseHeaders, Authorization: `Bearer ${token}` }
+    : baseHeaders;
 
-  async function gh(url: string) {
-    let response = await fetch(url, { headers: authHeaders });
-    // If the configured token is invalid/expired, retry public endpoints without it.
+  async function gh(endpoint: string): Promise<Response> {
+    let response = await fetch(endpoint, { headers: authHeaders });
     if (response.status === 401 && token) {
-      response = await fetch(url, { headers: baseHeaders });
+      response = await fetch(endpoint, { headers: baseHeaders });
     }
     return response;
   }
 
   try {
     const profileRes = await gh(`https://api.github.com/users/${encodeURIComponent(cleanUser)}`);
-    if (!profileRes.ok) {
-      const status = profileRes.status;
-      return res.status(status === 404 ? 404 : status === 403 ? 429 : 502).json({
-        error: status === 404 ? 'GitHub user not found' : status === 403 ? 'GitHub API rate limit reached' : 'GitHub profile request failed',
-      });
-    }
+    if (profileRes.status === 404) return json({ error: 'GitHub user not found' }, 404);
+    if (profileRes.status === 403) return json({ error: 'GitHub API rate limit reached' }, 429);
+    if (!profileRes.ok) return json({ error: `GitHub profile request failed (${profileRes.status})` }, 502);
 
     const p = await profileRes.json();
 
-    async function fetchAll(kind: 'repos' | 'starred') {
+    async function fetchAll(kind: 'repos' | 'starred'): Promise<any[]> {
       const all: any[] = [];
       for (let page = 1; page <= 10; page += 1) {
-        const url = kind === 'repos'
+        const endpoint = kind === 'repos'
           ? `https://api.github.com/users/${encodeURIComponent(cleanUser)}/repos?per_page=100&page=${page}&sort=updated&type=owner`
           : `https://api.github.com/users/${encodeURIComponent(cleanUser)}/starred?per_page=100&page=${page}`;
-        const response = await gh(url);
-        if (!response.ok) {
-          const body = await response.text().catch(() => '');
-          throw new Error(`GitHub ${kind} request failed: ${response.status} ${body.slice(0, 200)}`);
-        }
+        const response = await gh(endpoint);
+        if (response.status === 403) throw new Error(`GitHub ${kind} rate limit reached`);
+        if (!response.ok) throw new Error(`GitHub ${kind} request failed (${response.status})`);
         const pageData = await response.json();
         if (!Array.isArray(pageData)) throw new Error(`GitHub ${kind} returned invalid data`);
         all.push(...pageData);
@@ -82,7 +104,7 @@ export default async function handler(req: any, res: any) {
     const publicRepos = reposData.map(enrichRepo);
     const starredRepos = starredData.map(enrichRepo);
 
-    return res.status(200).json({
+    return json({
       profile: {
         login: p.login,
         name: p.name || p.login,
@@ -103,9 +125,7 @@ export default async function handler(req: any, res: any) {
     });
   } catch (error) {
     console.error('github-user error:', error);
-    return res.status(502).json({
-      error: 'Unable to load GitHub repositories right now.',
-      detail: process.env.NODE_ENV === 'development' ? String(error) : undefined,
-    });
+    const message = error instanceof Error ? error.message : 'Unknown GitHub API error';
+    return json({ error: 'Unable to load GitHub repositories right now.', detail: message }, 502);
   }
 }
