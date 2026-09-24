@@ -1,6 +1,6 @@
 import React from 'react';
 import { StarIcon } from './Icons';
-import { BookOpen, Package } from 'lucide-react';
+import { BookOpen, Package, RefreshCw } from 'lucide-react';
 
 interface StatsLineCardProps {
   publicCount: number;
@@ -9,6 +9,8 @@ interface StatsLineCardProps {
   activeTab: 'public' | 'starred' | 'apk';
   onSelectTab: (tab: 'public' | 'starred' | 'apk') => void;
   displayName: string;
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export const TotalStarredCard: React.FC<StatsLineCardProps> = ({
@@ -18,24 +20,40 @@ export const TotalStarredCard: React.FC<StatsLineCardProps> = ({
   activeTab,
   onSelectTab,
   displayName,
+  isRefreshing = false,
+  onRefresh,
 }) => {
   return (
     <div className="relative w-full my-5 sm:my-6 select-none">
       {/* Outer Neobrutalist Container */}
       <div className="bg-white rounded-2xl sm:rounded-3xl border-[3px] sm:border-4 border-black p-4 sm:p-6 shadow-[5px_5px_0px_#000] sm:shadow-[7px_7px_0px_#000]">
         
-        {/* Header Label inside Card - NO EMOJIS */}
+        {/* Header Label inside Card */}
         <div className="flex items-center justify-between pb-3 sm:pb-4 border-b-2 border-black mb-4">
           <div className="flex items-center gap-2">
             <span className="w-3.5 h-3.5 bg-[#FFE600] border-2 border-black inline-block"></span>
             <span className="text-[#6B21A8] font-black text-xs sm:text-sm tracking-[0.16em] uppercase">
-              {displayName} REPOSITORY OVERVIEW
+              {displayName} REPOSITORIES
             </span>
           </div>
 
-          <span className="text-[10px] sm:text-xs font-mono font-bold text-neutral-500 uppercase">
-            CLICK TO VIEW
-          </span>
+          <div className="flex items-center gap-2">
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                title="Refresh GitHub stats and repositories"
+                className="p-1 sm:px-2 sm:py-1 bg-[#FAF6EE] hover:bg-[#FFE600] border-2 border-black rounded-lg text-black font-black text-[10px] uppercase flex items-center gap-1 shadow-[1.5px_1.5px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer transition-all"
+              >
+                <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+            )}
+            <span className="text-[10px] sm:text-xs font-mono font-bold text-neutral-500 uppercase">
+              CLICK TO VIEW
+            </span>
+          </div>
         </div>
 
         {/* The 3 Stats in ONE BEAUTIFUL LINE: 1. Public, 2. Starred, 3. Favorites/APK */}

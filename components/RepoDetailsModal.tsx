@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Repository, hasActualApk } from '../types';
 import {
@@ -13,8 +12,14 @@ import {
   ArrowDown,
   Sparkles,
   CheckCircle2,
+  RefreshCw,
+  Clock,
+  Tag,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { formatCompactNumber, formatFileSize } from '../services/githubApi';
+import { formatUpdateDateTime, cleanReleaseNotes } from '../services/updaterService';
 import { StarIcon } from './Icons';
 
 export function renderTextWithLinks(text: string): React.ReactNode {
@@ -60,10 +65,9 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadCompleted, setDownloadCompleted] = useState(false);
-  const [readme, setReadme] = useState<string | null>(null);
-  const [loadingReadme, setLoadingReadme] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [readingProgress, setReadingProgress] = useState(0);
+  const [realtimeRelease, setRealtimeRelease] = useState<any>(null);
+  const [isCheckingRelease, setIsCheckingRelease] = useState(false);
+  const [showReleaseNotes, setShowReleaseNotes] = useState(false);
 
   useEffect(() => {
     if (repo) {
@@ -76,38 +80,71 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
     };
   }, [repo]);
 
-  useEffect(() => {
-    if (!repo) return;
-    setReadme(null);
-    setLoadingReadme(true);
-    fetch(`https://api.github.com/repos/${repo.full_name}/readme`, {
-      headers: { Accept: 'application/vnd.github.v3.raw' },
-    })
-      .then((res) => (res.ok ? res.text() : null))
-      .then(setReadme)
-      .catch((err) => {
-        console.warn('Failed to fetch README', err);
-        setReadme('');
-      })
-      .finally(() => setLoadingReadme(false));
-  }, [repo]);
+  // Real-time live fetch of releases from GitHub and API
+  const fetchLiveRelease = async (force: boolean = false) => {
+    if (!repo?.full_name) return;
+    setIsCheckingRelease(true);
+    try {
+      // 1. Try server real-time release endpoint
+      const res = await fetch(
+        `/api/repo-releases?repo=${encodeURIComponent(repo.full_name)}${force ? '&fresh=true' : ''}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.hasApk) {
+          setRealtimeRelease(data);
+          return;
+        }
+      }
+
+      // 2. Direct client-side GitHub API fallback
+      try {
+        const ghRes = await fetch(`https://api.github.com/repos/${repo.full_name}/releases`);
+        if (ghRes.ok) {
+          const releases = await ghRes.json();
+          if (Array.isArray(releases) && releases.length > 0) {
+            for (const r of releases) {
+              const apkAsset = r.assets?.find((a: any) =>
+                a.name?.toLowerCase().endsWith('.apk')
+              );
+              if (apkAsset) {
+                setRealtimeRelease({
+                  success: true,
+                  hasApk: true,
+                  tagName: r.tag_name || r.name || 'Latest',
+                  releaseName: r.name || `${repo.name} Release`,
+                  apkName: apkAsset.name,
+                  downloadUrl: apkAsset.browser_download_url,
+                  sizeBytes: apkAsset.size,
+                  publishedAt: r.published_at || new Date().toISOString(),
+                  releaseNotes: cleanReleaseNotes(r.body),
+                  downloadCount: apkAsset.download_count || 0,
+                  htmlUrl: r.html_url || `${repo.html_url}/releases`,
+                  isLive: true,
+                });
+                return;
+              }
+            }
+          }
+        }
+      } catch {
+        // ignore client error
+      }
+    } catch (err) {
+      console.warn('Failed to fetch real-time release for', repo.full_name, err);
+    } finally {
+      setIsCheckingRelease(false);
+    }
+  };
 
   useEffect(() => {
-    const handleScroll = (e: any) => {
-      const container = e.target;
-      if (!container) return;
-      const scrollTop = container.scrollTop;
-      const scrollHeight = container.scrollHeight - container.clientHeight;
-      setReadingProgress((scrollTop / scrollHeight) * 100);
-    };
-
-    const modalContent = document.querySelector('.brutal-scroll');
-    modalContent?.addEventListener('scroll', handleScroll);
-    return () => modalContent?.removeEventListener('scroll', handleScroll);
-  }, [readme]);
-
-
-
+    if (repo) {
+      setRealtimeRelease(repo.latestRelease || null);
+      fetchLiveRelease(false);
+    } else {
+      setRealtimeRelease(null);
+    }
+  }, [repo?.full_name]);
 
   if (!repo) return null;
 
@@ -165,6 +202,7 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
 
   // Genuine APK release or fallback for Android/APK repos
   const apkRelease =
+    realtimeRelease ||
     (repo.latestRelease && (repo.latestRelease.apkName || repo.latestRelease.downloadUrl)
       ? repo.latestRelease
       : null) ||
@@ -175,6 +213,8 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
           apkName: `${repo.name}.apk`,
           downloadUrl: `${repo.html_url}/releases`,
           sizeBytes: undefined,
+          publishedAt: repo.updated_at,
+          releaseNotes: '• Verified Android Package release from GitHub repository.',
         }
       : null);
 
@@ -191,27 +231,7 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
         
         {/* Top Bar */}
         <div className="sticky top-0 bg-[#FAF6EE] z-20">
-          <div className="absolute top-0 left-0 h-1 bg-black w-full">
-            <div
-              className="h-full bg-[#6B21A8] transition-all duration-100"
-              style={{ width: `${readingProgress}%` }}
-            />
-          </div>
-
           <div className="relative flex items-center justify-between pb-3 border-b-2 border-black mb-4 overflow-hidden pt-2">
-            {/* README Loading Progress Bar */}
-            {loadingReadme && (
-              <div className="absolute top-0 left-0 h-1 bg-black animate-pulse w-full">
-                <div className="h-full bg-[#FFE600] animate-[loading_1.5s_infinite]" />
-                <style>{`
-                  @keyframes loading {
-                    0% { width: 0%; }
-                    50% { width: 70%; }
-                    100% { width: 100%; }
-                  }
-                `}</style>
-              </div>
-            )}
             <div className="flex items-center gap-2">
               <span className="w-3.5 h-3.5 bg-[#FFE600] border-2 border-black inline-block"></span>
               <span className="font-mono text-xs font-bold text-neutral-600 uppercase">
@@ -237,29 +257,117 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
           </p>
         </div>
 
-        {/* Direct APK Release Section if available with Download Animation */}
-        {apkRelease && (
+        {/* Real-time APK Release Section & Download */}
+        {apkRelease ? (
           <div className="bg-[#FFFDF0] border-2 border-black rounded-2xl p-4 mb-4 shadow-[3px_3px_0px_#000] space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="w-8 h-8 rounded-xl bg-[#FFE600] border-2 border-black flex items-center justify-center">
-                <Package className="w-4 h-4 text-black" />
-              </span>
-              <div>
-                <h4 className="font-black text-sm text-black uppercase">
-                  Direct APK Download Available
-                </h4>
-                <p className="font-mono text-xs text-neutral-600">
-                  Latest Release: {apkRelease.tagName}
-                </p>
+            {/* Top status bar */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-[#FFE600] border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_#000]">
+                  <Package className="w-4 h-4 text-black" />
+                </span>
+                <div>
+                  <h4 className="font-black text-sm text-black uppercase tracking-tight flex items-center gap-1.5">
+                    <span>Direct APK Download</span>
+                  </h4>
+                  <div className="flex items-center gap-1.5 font-mono text-xs text-neutral-600">
+                    <Tag className="w-3 h-3 text-neutral-500" />
+                    <span className="font-bold text-black">{apkRelease.tagName}</span>
+                    {apkRelease.publishedAt && (
+                      <>
+                        <span>•</span>
+                        <span>{formatUpdateDateTime(apkRelease.publishedAt).relative}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Real-time Live Badge */}
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 border border-emerald-600 rounded-md text-[10px] font-mono font-black text-emerald-800 tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping inline-block" />
+                  LIVE • REAL-TIME
+                </span>
+
+                {/* Re-check live update button */}
+                <button
+                  type="button"
+                  onClick={() => fetchLiveRelease(true)}
+                  disabled={isCheckingRelease}
+                  title="Check for live APK updates on GitHub"
+                  className="p-1.5 bg-white border border-black rounded-lg hover:bg-neutral-100 active:scale-95 transition-all text-black cursor-pointer flex items-center gap-1 font-mono text-[10px] font-bold"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isCheckingRelease ? 'animate-spin text-purple-700' : ''}`} />
+                  <span className="hidden sm:inline">Sync</span>
+                </button>
               </div>
             </div>
 
-            <div className="bg-white border border-black rounded-xl p-3">
-              <div className="flex items-center justify-between font-mono text-xs text-neutral-800">
-                <span className="font-bold truncate">{apkRelease.apkName}</span>
-                {/* No APK size */}
+            {/* APK File Information Box */}
+            <div className="bg-white border-2 border-black rounded-xl p-3 shadow-[1.5px_1.5px_0px_#000]">
+              <div className="flex items-center justify-between flex-wrap gap-1 font-mono text-xs text-neutral-800">
+                <div className="flex items-center gap-2 truncate max-w-[70%]">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 border border-black inline-block flex-shrink-0" />
+                  <span className="font-bold truncate text-black">{apkRelease.apkName}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-bold">
+                  {apkRelease.sizeBytes ? (
+                    <span className="bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-300">
+                      {formatFileSize(apkRelease.sizeBytes)}
+                    </span>
+                  ) : (
+                    <span className="bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-300">
+                      APK Package
+                    </span>
+                  )}
+                  {apkRelease.downloadCount ? (
+                    <span className="bg-[#FFE600]/40 px-1.5 py-0.5 rounded border border-black/30">
+                      📥 {apkRelease.downloadCount}
+                    </span>
+                  ) : null}
+                </div>
               </div>
+
+              {/* Real-time published timestamp */}
+              {apkRelease.publishedAt && (
+                <div className="mt-2 pt-2 border-t border-neutral-200 flex items-center justify-between text-[11px] font-mono text-neutral-600">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-neutral-500" />
+                    <span>
+                      {formatUpdateDateTime(apkRelease.publishedAt).formattedDate} at {formatUpdateDateTime(apkRelease.publishedAt).formattedTime}
+                    </span>
+                  </div>
+                  <span className="font-bold text-emerald-700">Live Synced</span>
+                </div>
+              )}
             </div>
+
+            {/* Release Notes (Expandable if available) */}
+            {apkRelease.releaseNotes && (
+              <div className="bg-white border border-black rounded-xl p-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowReleaseNotes(!showReleaseNotes)}
+                  className="w-full flex items-center justify-between text-xs font-mono font-bold text-neutral-700 cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-[#6B21A8]" />
+                    <span>What's New in this APK</span>
+                  </span>
+                  {showReleaseNotes ? (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                </button>
+                {showReleaseNotes && (
+                  <div className="mt-2 pt-2 border-t border-neutral-200 text-xs font-mono text-neutral-700 leading-relaxed whitespace-pre-wrap">
+                    {cleanReleaseNotes(apkRelease.releaseNotes)}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Realistic Animated Download Progress Display */}
             <AnimatePresence>
@@ -348,6 +456,46 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
               )}
             </motion.button>
           </div>
+        ) : isCheckingRelease ? (
+          <div className="bg-white border-2 border-black rounded-xl p-3 mb-4 shadow-[2px_2px_0px_#000] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <RefreshCw className="w-4 h-4 text-black animate-spin" />
+              <span className="font-mono text-xs font-bold text-neutral-800">
+                Checking GitHub for real-time APK updates...
+              </span>
+            </div>
+            <span className="w-2 h-2 rounded-full bg-[#FFE600] animate-ping" />
+          </div>
+        ) : (
+          <div className="bg-white border-2 border-black rounded-xl p-3 mb-4 shadow-[2px_2px_0px_#000] flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-neutral-100 border border-black flex items-center justify-center">
+                <Package className="w-3.5 h-3.5 text-neutral-500" />
+              </span>
+              <span className="font-mono text-xs text-neutral-600">
+                No direct APK package attached to releases.
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fetchLiveRelease(true)}
+                className="px-2.5 py-1 bg-white border border-black rounded-lg font-mono text-[11px] font-bold hover:bg-neutral-100 flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Re-check</span>
+              </button>
+              <a
+                href={`${repo.html_url}/releases`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 bg-[#FFE600] text-black border border-black rounded-lg font-mono text-[11px] font-bold hover:bg-yellow-300 flex items-center gap-1 cursor-pointer"
+              >
+                <span>Releases</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
         )}
 
         {/* Description */}
@@ -355,116 +503,6 @@ export const RepoDetailsModal: React.FC<RepoDetailsModalProps> = ({ repo, onClos
           <p className="font-mono text-xs sm:text-sm text-neutral-800 leading-relaxed whitespace-pre-wrap">
             {repo.description ? renderTextWithLinks(repo.description) : 'No description provided.'}
           </p>
-        </div>
-
-        {/* README Section */}
-        <div className="bg-white border-2 border-black rounded-xl p-4 mb-4 shadow-[2px_2px_0px_#000]">
-          <style>{`
-            .prose-neobrutalist h1, .prose-neobrutalist h2, .prose-neobrutalist h3 {
-              font-weight: 900;
-              text-transform: uppercase;
-              border-bottom: 2px solid #000;
-              margin: 1.5rem 0 0.5rem 0;
-              color: #000;
-            }
-            .prose-neobrutalist blockquote {
-              border-left: 4px solid #000;
-              background: #f0f0f0;
-              padding: 1rem;
-              margin: 1rem 0;
-              font-style: italic;
-              border-radius: 0 8px 8px 0;
-            }
-            .prose-neobrutalist pre {
-              background: #000;
-              color: #FFE600;
-              padding: 1rem;
-              border-radius: 12px;
-              overflow-x: auto;
-              border: 2px solid #000;
-              box-shadow: 4px 4px 0px #000;
-              margin: 1rem 0;
-            }
-            .prose-neobrutalist code {
-              background: #e5e5e5;
-              padding: 0.2rem 0.4rem;
-              border-radius: 4px;
-              font-family: monospace;
-              color: #000;
-            }
-          `}</style>
-          <div className="flex justify-between items-center mb-2">
-            <span className="block text-xs font-black tracking-wider text-[#6B21A8] uppercase">
-              README
-            </span>
-            <div className="flex items-center gap-2">
-              {readme && (
-                <button
-                  onClick={() => {
-                    const newWindow = window.open('', '_blank');
-                    if (newWindow) {
-                      newWindow.document.write(`
-                        <html>
-                          <head>
-                            <title>README - ${repo.full_name}</title>
-                            <style>
-                              body { font-family: sans-serif; padding: 2rem; background: ${isDarkMode ? '#1a1a1a' : '#FAF6EE'}; color: ${isDarkMode ? '#eee' : '#000'}; }
-                              .content { max-width: 800px; margin: 0 auto; }
-                              pre { background: #000; color: #FFE600; padding: 1rem; border-radius: 12px; }
-                            </style>
-                          </head>
-                          <body>
-                            <div class="content">${readme}</div>
-                          </body>
-                        </html>
-                      `);
-                    }
-                  }}
-                  className="p-1 bg-white border border-black rounded-lg hover:bg-neutral-100 cursor-pointer"
-                  title="View Fullscreen"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-          {loadingReadme ? (
-            <p className="font-mono text-xs text-neutral-500">Loading README...</p>
-          ) : readme ? (
-            <div className={isDarkMode ? 'dark' : ''}>
-              {/* Table of Contents */}
-              <div className="mb-4 p-3 bg-[#FAF6EE] dark:bg-[#2d2d2d] border border-black dark:border-white rounded-lg">
-                <span className="block text-[10px] font-black uppercase text-neutral-700 dark:text-neutral-300 mb-1.5">Table of Contents</span>
-                <ul className="space-y-1">
-                  {readme.match(/^#{1,3}\s+.+/gm)?.map((header, i) => {
-                    const level = header.match(/^#+/)?.[0].length || 0;
-                    const text = header.replace(/^#+\s+/, '');
-                    const id = text.toLowerCase().replace(/\s+/g, '-');
-                    return (
-                      <li key={i} style={{ paddingLeft: `${(level - 1) * 10}px` }}>
-                        <a href={`#${id}`} className="text-xs font-mono font-bold text-[#6B21A8] dark:text-[#a78bfa] hover:underline">
-                          {text}
-                        </a>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-              <div className="prose prose-sm max-w-none font-mono text-xs sm:text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed overflow-x-auto prose-neobrutalist dark:prose-invert">
-                <ReactMarkdown
-                  components={{
-                    h1: ({ children }) => <h1 id={String(children).toLowerCase().replace(/\s+/g, '-')}>{children}</h1>,
-                    h2: ({ children }) => <h2 id={String(children).toLowerCase().replace(/\s+/g, '-')}>{children}</h2>,
-                    h3: ({ children }) => <h3 id={String(children).toLowerCase().replace(/\s+/g, '-')}>{children}</h3>,
-                  }}
-                >
-                  {readme}
-                </ReactMarkdown>
-              </div>
-            </div>
-          ) : null}
         </div>
 
         {/* Stats Grid */}

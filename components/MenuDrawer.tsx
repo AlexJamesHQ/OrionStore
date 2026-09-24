@@ -14,8 +14,8 @@ interface MenuDrawerProps {
   selectedCategory: string;
   onSelectCategory: (cat: string) => void;
   availableCategories: string[];
-  sortBy: 'stars' | 'name';
-  onSelectSortBy: (sort: 'stars' | 'name') => void;
+  sortBy: 'updated' | 'stars' | 'name';
+  onSelectSortBy: (sort: 'updated' | 'stars' | 'name') => void;
   apkFilterMode?: ApkFilterMode;
   onSelectApkFilterMode?: (mode: ApkFilterMode) => void;
   hideNonApk?: boolean;
@@ -118,7 +118,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 </p>
                 <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#6B21A8] mt-1">
                   <StarIcon className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                  <span>{developerProfile.starred_count || 46} Starred Repositories</span>
+                  <span>{developerProfile.starred_count || 45} Starred Repositories</span>
                 </div>
               </div>
             </div>
@@ -172,15 +172,16 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             <label className="block text-xs font-black tracking-wider text-[#6B21A8] uppercase mb-2">
               Sort Repositories:
             </label>
-            <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="grid grid-cols-3 gap-1.5 mb-4">
               {[
-                { id: 'stars', label: 'Most Stars' },
-                { id: 'name', label: 'Alphabetical' },
+                { id: 'updated', label: 'Updated' },
+                { id: 'stars', label: 'Stars' },
+                { id: 'name', label: 'A to Z' },
               ].map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onSelectSortBy(item.id as any)}
-                  className={`p-2.5 text-center rounded-xl border-2 border-black font-black text-xs uppercase transition-all cursor-pointer ${
+                  className={`p-2 text-center rounded-xl border-2 border-black font-black text-xs uppercase transition-all cursor-pointer ${
                     sortBy === item.id
                       ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] border-black scale-[1.02]'
                       : 'bg-[#FAF6EE] hover:bg-neutral-100'

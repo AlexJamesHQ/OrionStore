@@ -1,6 +1,10 @@
 import React from 'react';
-import Marquee from 'react-fast-marquee';
+import MarqueeComponent from 'react-fast-marquee';
 import { SiReact, SiNextdotjs, SiTypescript, SiTailwindcss } from 'react-icons/si';
+
+// Ensure component is properly extracted regardless of ESM / CJS module bundling
+const Marquee: any =
+  (MarqueeComponent as any)?.default || MarqueeComponent;
 
 const techLogos = [
   { node: <SiReact className="w-8 h-8" />, title: "React", href: "https://react.dev" },
