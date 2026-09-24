@@ -5,14 +5,14 @@ export const DEFAULT_USER_PROFILE: GitHubUserProfile = {
   name: "ΛLΞX JΛMΞS ᗪEV",
   avatar_url: "https://avatars.githubusercontent.com/u/169815417?v=4",
   html_url: "https://github.com/AlexJamesHQ",
-  bio: "Web/App Development, 3D & Branding Agency Creator. Crafting high-performance digital experiences.",
+  bio: "Web/App Development, 3D & Branding Agency.",
   company: "Web/App Development, 3D & Branding Agency",
   location: "Pabna",
-  blog: "https://alex-james.vercel.app",
+  blog: "http://alex-james.vercel.app",
   public_repos: 18,
-  followers: 42,
-  following: 12,
-  starred_count: 46,
+  followers: 7,
+  following: 32,
+  starred_count: 45,
 };
 
 export const INITIAL_REPOSITORIES: Repository[] = [
@@ -1691,13 +1691,12 @@ export const ALEX_PUBLIC_REPOSITORIES: Repository[] = [
       "html_url": "https://github.com/AlexJamesHQ"
     },
     "html_url": "https://github.com/AlexJamesHQ/AlexJamesHQ",
-    "description": "ΛLΞX JΛMΞS ᗪEV | C#, Python, JS & .NET Developer Creating immersive web, mobile, and 3D experiences. Official profile README.",
+    "description": "ΛLΞX JΛMΞS ᗪEV | C#, Python, JS & .NET Developer Creating immersive web, mobile, and 3D experiences. Official profile.",
     "stargazers_count": 17,
     "category": "Tools & Utilities",
     "language": "Markdown",
     "topics": [
       "profile",
-      "readme",
       "portfolio",
       "branding"
     ],
@@ -1854,7 +1853,7 @@ export const USER_4NX3B_DATA = {
       stargazers_count: 15,
       category: "Tools & Utilities",
       language: "Python",
-      topics: ["profile", "readme", "config"],
+      topics: ["profile", "config"],
       updated_at: "2026-09-15T18:00:00Z"
     },
     {
