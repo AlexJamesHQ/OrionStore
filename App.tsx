@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Repository, GitHubUserProfile } from './types';
 import {
   DEFAULT_USER_PROFILE,
@@ -474,24 +475,11 @@ const App: React.FC = () => {
         <div className="flex items-center justify-between mt-1 mb-3.5 select-none">
           <div className="flex items-center gap-2.5">
             <h3 className="text-[#6B21A8] font-black text-lg sm:text-xl tracking-[0.14em] uppercase">
-              <EchoText
-                text={
-                  activeTab === 'public'
-                    ? 'PUBLIC REPOSITORIES'
-                    : activeTab === 'starred'
-                    ? 'STARRED REPOSITORIES'
-                    : 'APK RELEASES & APPS'
-                }
-                echoes={10}
-                lag={0.15}
-                offset={24}
-                direction="right"
-                fade={0.7}
-                blur={2}
-                tint="#c084fc"
-                intervalSeconds={8}
-                fontWeight={900}
-              />
+              {activeTab === 'public'
+                ? 'PUBLIC REPOSITORIES'
+                : activeTab === 'starred'
+                ? 'STARRED REPOSITORIES'
+                : 'APK RELEASES & APPS'}
             </h3>
             <span className="text-xs font-mono font-bold text-neutral-700 bg-white border-2 border-black px-2 py-0.5 rounded-lg shadow-[2px_2px_0px_#000]">
               {filteredRepos.length}
@@ -567,21 +555,34 @@ const App: React.FC = () => {
           <LogoLoop />
         </div>
 
-        {/* Interactive Flip Card */}
-        <div className="mt-10 flex justify-center w-full">
+        {/* Interactive Flip Card - Clean Dual Image Showcase with Scroll Scale Animation */}
+        <motion.div
+          initial={{ opacity: 0.85, scale: 0.92 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: false, amount: 0.2 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-12 flex justify-center w-full"
+        >
           <FlipCard
             front={
               <img
-                src="https://github.com/user-attachments/assets/39d57249-29e6-447a-8da9-3d9ad92cb796"
+                src="/front_image.jpg"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = "https://github.com/user-attachments/assets/39d57249-29e6-447a-8da9-3d9ad92cb796";
+                }}
                 alt="Wooded landscape"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             }
             back={
-              <div style={{ padding: 24 }} className="flex flex-col justify-center items-center h-full text-center">
-                <h3 className="font-black text-xl mb-2 text-[#FFE600] uppercase tracking-wide">Wooded Landscape</h3>
-                <p className="font-mono text-sm opacity-90">17th century · Rijksmuseum</p>
-              </div>
+              <img
+                src="https://i.postimg.cc/mgF9FrTW/1776962820016-2.jpg"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = "/back_image.jpg";
+                }}
+                alt="Featured Artwork"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
             }
             axis="y"
             flipOnClick
@@ -605,32 +606,17 @@ const App: React.FC = () => {
             shadowOpacity={0.45}
             onFlipChange={(flipped) => console.log(flipped)}
           />
-        </div>
+        </motion.div>
 
         {/* Bottom Motion Echo Developer Banner */}
         <footer className="mt-14 mb-10 w-full select-none">
           <div className="w-full p-6 sm:p-8 bg-black border-[3px] border-black rounded-2xl shadow-[6px_6px_0px_#FFE600] flex flex-col items-center justify-center text-center overflow-hidden">
-            {/* Developer Alex James Animated with EchoText */}
+            {/* Developer Alex James Heading */}
             <div className="flex items-center justify-center gap-2 mb-3">
               <span className="w-3 h-3 bg-[#FFE600] border-2 border-black rounded-full inline-block animate-pulse"></span>
-              <EchoText
-                text="Developer Alex James"
-                echoes={12}
-                lag={0.24}
-                offset={36}
-                direction="right"
-                fade={0.72}
-                blur={3}
-                tint="#7dd3fc"
-                mode="both"
-                cursorRadius={320}
-                duration={900}
-                ease="ease-out"
-                fontSize="clamp(1.75rem, 5vw, 3rem)"
-                fontWeight={800}
-                color="#f8fafc"
-                intervalSeconds={8}
-              />
+              <h2 className="font-black text-2xl sm:text-3xl text-white tracking-tight uppercase">
+                Developer Alex James
+              </h2>
               <span className="text-red-500 text-2xl inline-block transition-transform hover:scale-125 duration-200">♥️</span>
             </div>
 

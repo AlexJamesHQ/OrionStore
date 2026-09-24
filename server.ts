@@ -297,7 +297,17 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT || 3000;
 
-  app.use(express.json());
+  // Allow larger payload sizes to prevent PayloadTooLargeError when syncing large repo lists
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+  // Graceful handler for body-parser payload errors
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+      return res.status(413).json({ error: 'Request entity too large', message: err.message });
+    }
+    next(err);
+  });
 
   // Real-time APK Release and Update Checker Endpoint
   app.get('/api/latest-app-update', async (req, res) => {
