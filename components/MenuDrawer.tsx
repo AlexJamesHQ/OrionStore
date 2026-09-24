@@ -1,7 +1,6 @@
 import React from 'react';
 import { X, Zap, ExternalLink, Sparkles } from 'lucide-react';
 import { GitHubUserProfile } from '../types';
-import { DEFAULT_USER_PROFILE } from '../data/sampleRepos';
 import { GitHubIcon, TelegramIcon, FacebookIcon, InstagramIcon, StarIcon } from './Icons';
 
 export type ApkFilterMode = 'all' | 'apk_only' | 'non_apk_only';
@@ -55,11 +54,11 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  // The profile inside settings always represents the developer: Alex James
-  const developerProfile = DEFAULT_USER_PROFILE;
+  // The profile shown here is the currently loaded GitHub account
+  const developerProfile = currentUser;
 
   const handleQuickLoad = () => {
-    onSwitchUser('AlexJamesHQ');
+    onSwitchUser(currentUser.login || 'AlexJamesHQ');
     onClose();
   };
 
@@ -93,7 +92,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             </button>
           </div>
 
-          {/* User Account Info Card - ALWAYS Alex James with Quick button */}
+          {/* User Account Info Card - Current GitHub account with Quick button */}
           <div className="mb-4 bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000]">
             <div className="flex items-center gap-3">
               <img
@@ -107,10 +106,10 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
                   <h4 className="font-black text-base text-black tracking-tight truncate">
-                    Alex James
+                    {developerProfile.name || developerProfile.login}
                   </h4>
                   <span className="text-[10px] font-mono font-bold bg-[#FFE600] border border-black px-1.5 py-0.5 rounded shadow-[1px_1px_0px_#000]">
-                    DEV
+                    GITHUB
                   </span>
                 </div>
                 <p className="font-mono text-xs font-semibold text-neutral-600 truncate">
@@ -118,7 +117,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 </p>
                 <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#6B21A8] mt-1">
                   <StarIcon className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                  <span>{developerProfile.starred_count || 45} Starred Repositories</span>
+                  <span>{developerProfile.starred_count || 0} Starred Repositories</span>
                 </div>
               </div>
             </div>
