@@ -52,7 +52,7 @@ export function hasActualApk(repo?: Repository | null): boolean {
     const apkName = (repo.latestRelease.apkName || '').toLowerCase();
     const url = (repo.latestRelease.downloadUrl || '').toLowerCase();
     const tag = (repo.latestRelease.tagName || '').toLowerCase();
-    if (apkName.endsWith('.apk') || url.includes('.apk') || apkName.includes('.apk') || Boolean(tag)) {
+    if (apkName.endsWith('.apk') || url.includes('.apk') || apkName.includes('.apk')) {
       return true;
     }
   }

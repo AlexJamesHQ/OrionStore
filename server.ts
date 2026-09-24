@@ -661,239 +661,80 @@ async function startServer() {
       .trim();
   }
 
-  // Real-time GitHub Updates API for any searched user or AlexJamesHQ
-  app.all('/api/github-updates', async (req, res) => {
-    const rawUser = (req.method === 'POST' ? req.body?.user : req.query.user) || 'AlexJamesHQ';
-    const cleanUser = extractGitHubUsername(rawUser) || 'AlexJamesHQ';
-    const isAlex = cleanUser.toLowerCase() === 'alexjameshq';
-    const clientProvidedRepos: any[] = req.method === 'POST' && Array.isArray(req.body?.repos) ? req.body.repos : [];
+  // App update API: always checks the single configured OrionStore release repository.
+  app.get('/api/github-updates', async (_req, res) => {
+    const repo = 'AlexJamesHQ/Orion-Store';
+    const currentVersion = '1.4.2';
+    const now = new Date().toISOString();
+    const base = {
+      currentVersion: `v${currentVersion}`,
+      latestVersion: `v${currentVersion}`,
+      hasUpdate: false,
+      releaseName: 'Up to Date',
+      releaseNotes: 'You are running the latest version.',
+      publishedAt: now,
+      lastSynced: now,
+      apkDownloadUrl: '',
+      apkFileName: '',
+      apkSizeBytes: undefined,
+      githubReleaseUrl: `https://github.com/${repo}`,
+      allReleases: [],
+    };
 
     try {
-      const authHeader: Record<string, string> = {
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'AI-Studio-Applet',
-      };
-      const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-      if (token) {
-        authHeader.Authorization = `Bearer ${token}`;
-      }
-
-      let reposList: any[] = [];
-      if (Array.isArray(clientProvidedRepos) && clientProvidedRepos.length > 0) {
-        reposList = [...clientProvidedRepos];
-      } else {
-        const cachedUser = userCache.get(cleanUser.toLowerCase());
-        if (cachedUser?.data) {
-          const pub = Array.isArray(cachedUser.data.publicRepos) ? cachedUser.data.publicRepos : [];
-          const star = Array.isArray(cachedUser.data.starredRepos) ? cachedUser.data.starredRepos : [];
-          reposList = [...pub, ...star];
-        }
-      }
-
-      // If still empty, fetch user's public and starred repositories
-      if (reposList.length === 0) {
-        try {
-          const [pubRes, starRes] = await Promise.all([
-            fetch(`https://api.github.com/users/${encodeURIComponent(cleanUser)}/repos?sort=updated&per_page=100`, { headers: authHeader }),
-            fetch(`https://api.github.com/users/${encodeURIComponent(cleanUser)}/starred?per_page=100`, { headers: authHeader })
-          ]);
-          const pubData = pubRes.ok ? await pubRes.json() : [];
-          const starData = starRes.ok ? await starRes.json() : [];
-          reposList = [...(Array.isArray(pubData) ? pubData : []), ...(Array.isArray(starData) ? starData : [])];
-        } catch {
-          // ignore
-        }
-      }
-
-      // ONLY for AlexJamesHQ fallback to his authentic repo list if empty
-      if (reposList.length === 0 && isAlex) {
-        reposList = [
-          { name: 'SwiftSlate', full_name: 'AlexJamesHQ/SwiftSlate', updated_at: '2026-09-23T08:41:54Z', default_branch: 'main' },
-          { name: 'LastWave-Native', full_name: 'AlexJamesHQ/LastWave-Native', updated_at: '2026-09-14T09:56:56Z', default_branch: 'main' },
-          { name: 'Koda', full_name: 'AlexJamesHQ/Koda', updated_at: '2026-08-22T16:14:20Z', default_branch: 'main' },
-          { name: 'OrionStore', full_name: 'AlexJamesHQ/OrionStore', updated_at: '2026-07-27T19:05:54Z', default_branch: 'main' },
-          { name: 'Gemini-Ai', full_name: 'AlexJamesHQ/Gemini-Ai', updated_at: '2026-07-23T17:01:01Z', default_branch: 'main' },
-          { name: 'ArchiveTune', full_name: 'AlexJamesHQ/ArchiveTune', updated_at: '2026-07-06T11:19:06Z', default_branch: 'main' },
-          { name: 'Orion-Store', full_name: 'AlexJamesHQ/Orion-Store', updated_at: '2026-07-03T21:40:16Z', default_branch: 'main' },
-        ];
-      }
-
-      // Map ensures ONLY THE LATEST release of each repo is stored (older versions auto-removed)
-      const releaseMap = new Map<string, any>();
-
-      // Check releases and latest updates for repositories
-      if (Array.isArray(reposList) && reposList.length > 0) {
-        await Promise.all(
-          reposList.map(async (r: any) => {
-            const repoName = r.name;
-            const repoOwner = r.owner?.login || cleanUser;
-            const repoFullName = r.full_name || `${repoOwner}/${repoName}`;
-            try {
-              // Only query GitHub releases API if we haven't hit rate limit
-              try {
-                const relRes = await fetch(
-                  `https://api.github.com/repos/${encodeURIComponent(repoFullName)}/releases`,
-                  { headers: authHeader }
-                );
-                if (relRes.ok) {
-                  const rels = await relRes.json();
-                  if (Array.isArray(rels) && rels.length > 0) {
-                    // Check if any release has an APK asset
-                    for (const rel of rels) {
-                      const apkAsset = rel.assets?.find((a: any) =>
-                        a.name?.toLowerCase().endsWith('.apk')
-                      );
-                      if (apkAsset) {
-                        if (!releaseMap.has(repoName)) {
-                          releaseMap.set(repoName, {
-                            repoName,
-                            tagName: rel.tag_name || rel.name || 'Latest',
-                            releaseName: rel.name || `${repoName} ${rel.tag_name || 'Release'}`,
-                            releaseNotes: cleanReleaseNotesServer(rel.body) || '• Production Android application package release.',
-                            publishedAt: rel.published_at || rel.created_at || r.updated_at,
-                            updatedAt: r.updated_at || rel.published_at,
-                            apkDownloadUrl: apkAsset.browser_download_url,
-                            apkFileName: apkAsset.name,
-                            apkSizeBytes: apkAsset.size || 15000000,
-                            githubReleaseUrl: rel.html_url || `https://github.com/${repoFullName}/releases`,
-                            isApk: true,
-                          });
-                        }
-                        break;
-                      }
-                    }
-                  }
-                }
-              } catch {
-                // releases fetch failed
-              }
-            } catch {
-              // fallback
-            }
-          })
-        );
-      }
-
-      // ONLY if AlexJamesHQ, guarantee his authentic APK releases
-      if (isAlex) {
-        const authenticAlexReleases = [
-          {
-            repoName: 'SwiftSlate',
-            tagName: 'SwiftSlate',
-            releaseName: 'SwiftSlate Production Release',
-            releaseNotes: '• Direct APK package installer & live update check\n• Auto-sync with AlexJamesHQ GitHub repositories',
-            publishedAt: '2026-09-23T08:41:54Z',
-            updatedAt: '2026-09-23T08:41:54Z',
-            apkDownloadUrl: 'https://github.com/AlexJamesHQ/SwiftSlate/releases/download/SwiftSlate/SwiftSlate.apk',
-            apkFileName: 'SwiftSlate.apk',
-            apkSizeBytes: 15400000,
-            githubReleaseUrl: 'https://github.com/AlexJamesHQ/SwiftSlate/releases',
-            isApk: true,
-          },
-          {
-            repoName: 'LastWave-Native',
-            tagName: 'LastWave',
-            releaseName: 'LastWave Native Android Release',
-            releaseNotes: '• Native music player build with full background playback support',
-            publishedAt: '2026-09-14T09:56:56Z',
-            updatedAt: '2026-09-14T09:56:56Z',
-            apkDownloadUrl: 'https://github.com/AlexJamesHQ/LastWave-Native/releases/download/LastWave/LastWave.apk',
-            apkFileName: 'LastWave.apk',
-            apkSizeBytes: 18200000,
-            githubReleaseUrl: 'https://github.com/AlexJamesHQ/LastWave-Native/releases',
-            isApk: true,
-          },
-          {
-            repoName: 'Koda',
-            tagName: 'Koda',
-            releaseName: 'Koda Android Package',
-            releaseNotes: '• Feature-rich streaming and library client update',
-            publishedAt: '2026-08-22T16:14:20Z',
-            updatedAt: '2026-08-22T16:14:20Z',
-            apkDownloadUrl: 'https://github.com/AlexJamesHQ/Koda/releases/download/Koda/Koda.apk',
-            apkFileName: 'Koda.apk',
-            apkSizeBytes: 22000000,
-            githubReleaseUrl: 'https://github.com/AlexJamesHQ/Koda/releases',
-            isApk: true,
-          },
-          {
-            repoName: 'OrionStore',
-            tagName: 'OrionStore',
-            releaseName: 'OrionStore v7.8.3.0',
-            releaseNotes: '• Latest store client release with direct package distribution',
-            publishedAt: '2026-07-27T19:05:54Z',
-            updatedAt: '2026-07-27T19:05:54Z',
-            apkDownloadUrl: 'https://github.com/AlexJamesHQ/OrionStore/releases/download/OrionStore/OrionStore_v7.8.3.0.APK',
-            apkFileName: 'OrionStore_v7.8.3.0.APK',
-            apkSizeBytes: 16500000,
-            githubReleaseUrl: 'https://github.com/AlexJamesHQ/OrionStore/releases',
-            isApk: true,
-          },
-          {
-            repoName: 'Gemini-Ai',
-            tagName: 'Gemini-Ai',
-            releaseName: 'Gemini AI Assistant v4.5.6',
-            releaseNotes: '• Multi-modal assistant client package for Android',
-            publishedAt: '2026-07-23T17:01:01Z',
-            updatedAt: '2026-07-23T17:01:01Z',
-            apkDownloadUrl: 'https://github.com/AlexJamesHQ/Gemini-Ai/releases/download/Gemini-Ai/Gemini_Ai_v4.5.6.APK',
-            apkFileName: 'Gemini_Ai_v4.5.6.APK',
-            apkSizeBytes: 19800000,
-            githubReleaseUrl: 'https://github.com/AlexJamesHQ/Gemini-Ai/releases',
-            isApk: true,
-          },
-          {
-            repoName: 'ArchiveTune',
-            tagName: '13.7.0',
-            releaseName: 'ArchiveTune v13.7.0',
-            releaseNotes: '• Archive audio streaming and offline playback engine',
-            publishedAt: '2026-07-06T11:19:06Z',
-            updatedAt: '2026-07-06T11:19:06Z',
-            apkDownloadUrl: 'https://github.com/AlexJamesHQ/ArchiveTune/releases/download/13.7.0/ArchiveTune.apk',
-            apkFileName: 'ArchiveTune.apk',
-            apkSizeBytes: 14700000,
-            githubReleaseUrl: 'https://github.com/AlexJamesHQ/ArchiveTune/releases',
-            isApk: true,
-          },
-          {
-            repoName: 'Orion-Store',
-            tagName: 'V1.3.3',
-            releaseName: 'Orion Store V1.3.3',
-            releaseNotes: '• Direct app installer and repository browser',
-            publishedAt: '2026-07-03T21:40:16Z',
-            updatedAt: '2026-07-03T21:40:16Z',
-            apkDownloadUrl: 'https://github.com/AlexJamesHQ/Orion-Store/releases/download/V1.3.3/Orion.Store.apk',
-            apkFileName: 'Orion.Store.apk',
-            apkSizeBytes: 12400000,
-            githubReleaseUrl: 'https://github.com/AlexJamesHQ/Orion-Store/releases',
-            isApk: true,
-          },
-        ];
-
-        for (const fb of authenticAlexReleases) {
-          if (!releaseMap.has(fb.repoName)) {
-            releaseMap.set(fb.repoName, fb);
-          }
-        }
-      }
-
-      // Sort releases by publishedAt descending (most recently updated first!)
-      const releases = Array.from(releaseMap.values());
-      releases.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-
-      const latest = releases[0];
-      return res.json({
-        success: true,
-        user: cleanUser,
-        lastSynced: new Date().toISOString(),
-        totalReleases: releases.length,
-        currentVersion: 'v1.4.2',
-        latestVersion: latest ? latest.tagName : 'v1.4.2',
-        hasUpdate: Boolean(latest),
-        allReleases: releases,
+      const ghRes = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=20`, {
+        headers: getGitHubAuthHeaders(),
+        cache: 'no-store',
       });
-    } catch (err: any) {
-      return res.status(500).json({ error: err.message || 'Failed to fetch updates' });
+      if (!ghRes.ok) return res.json(base);
+      const releases = await ghRes.json();
+      const mapped = (Array.isArray(releases) ? releases : []).map((rel: any) => {
+        const apk = Array.isArray(rel.assets)
+          ? rel.assets.find((a: any) => a.name?.toLowerCase().endsWith('.apk'))
+          : null;
+        return {
+          repoName: 'Orion-Store',
+          tagName: rel.tag_name || rel.name || 'latest',
+          releaseName: rel.name || rel.tag_name || 'Release',
+          releaseNotes: cleanReleaseNotesServer(rel.body),
+          publishedAt: rel.published_at || rel.created_at || now,
+          updatedAt: rel.updated_at,
+          apkDownloadUrl: apk?.browser_download_url || '',
+          apkFileName: apk?.name || '',
+          apkSizeBytes: apk?.size,
+          githubReleaseUrl: rel.html_url || `https://github.com/${repo}/releases`,
+          isApk: Boolean(apk),
+        };
+      });
+      const latest = mapped.find((r: any) => r.isApk) || mapped[0];
+      if (!latest) return res.json({ ...base, allReleases: mapped });
+
+      const parts = (v: string) => (v.replace(/^v/i, '').match(/\d+(?:\.\d+)*/)?.[0] || '0').split('.').map(Number);
+      const aParts = parts(latest.tagName);
+      const bParts = parts(currentVersion);
+      const length = Math.max(aParts.length, bParts.length);
+      let cmp = 0;
+      for (let i = 0; i < length; i++) {
+        const av = aParts[i] || 0;
+        const bv = bParts[i] || 0;
+        if (av !== bv) { cmp = av > bv ? 1 : -1; break; }
+      }
+      return res.json({
+        ...base,
+        latestVersion: latest.tagName,
+        hasUpdate: cmp > 0,
+        releaseName: latest.releaseName,
+        releaseNotes: latest.releaseNotes,
+        publishedAt: latest.publishedAt,
+        lastSynced: now,
+        apkDownloadUrl: latest.apkDownloadUrl,
+        apkFileName: latest.apkFileName,
+        apkSizeBytes: latest.apkSizeBytes,
+        githubReleaseUrl: latest.githubReleaseUrl,
+        allReleases: mapped,
+      });
+    } catch {
+      return res.json(base);
     }
   });
 

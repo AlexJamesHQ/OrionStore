@@ -2,11 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Repository, GitHubUserProfile, hasActualApk } from './types';
 import {
-  DEFAULT_USER_PROFILE,
-  ALEX_PUBLIC_REPOSITORIES,
-  INITIAL_REPOSITORIES,
-} from './data/sampleRepos';
-import {
   fetchGitHubUserData,
   extractGitHubUsername,
 } from './services/githubApi';
@@ -48,11 +43,11 @@ type TabView = 'public' | 'starred' | 'apk';
 const App: React.FC = () => {
   // Current active user - default starts with AlexJamesHQ
   const [currentUsername, setCurrentUsername] = useState('AlexJamesHQ');
-  const [userProfile, setUserProfile] = useState<GitHubUserProfile>(DEFAULT_USER_PROFILE);
+  const [userProfile, setUserProfile] = useState<GitHubUserProfile>({ login: 'AlexJamesHQ', name: 'Loading…', avatar_url: 'https://github.com/AlexJamesHQ.png', html_url: 'https://github.com/AlexJamesHQ', bio: '', company: null, location: null, blog: null, public_repos: 0, followers: 0, following: 0, starred_count: 0 });
 
   // Repositories buckets: Public repos & Starred repos for AlexJamesHQ
-  const [publicRepos, setPublicRepos] = useState<Repository[]>(ALEX_PUBLIC_REPOSITORIES);
-  const [starredRepos, setStarredRepos] = useState<Repository[]>(INITIAL_REPOSITORIES);
+  const [publicRepos, setPublicRepos] = useState<Repository[]>([]);
+  const [starredRepos, setStarredRepos] = useState<Repository[]>([]);
 
   // Active Tab view: Default is 'public'
   const [activeTab, setActiveTab] = useState<TabView>('public');
@@ -139,15 +134,8 @@ const App: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await fetchGitHubUserData(cleanUser, fresh);
-      const isAlex = cleanUser.toLowerCase() === 'alexjameshq';
-
-      const nextPublic = (data.publicRepos && Array.isArray(data.publicRepos) && data.publicRepos.length > 0)
-        ? data.publicRepos
-        : (isAlex ? ALEX_PUBLIC_REPOSITORIES : (data.publicRepos || []));
-
-      const nextStarred = (data.starredRepos && Array.isArray(data.starredRepos) && data.starredRepos.length > 0)
-        ? data.starredRepos
-        : (isAlex ? INITIAL_REPOSITORIES : (data.starredRepos || []));
+      const nextPublic = Array.isArray(data.publicRepos) ? data.publicRepos : [];
+      const nextStarred = Array.isArray(data.starredRepos) ? data.starredRepos : [];
 
       const nextProfile: GitHubUserProfile = data.profile || {
         login: cleanUser,
@@ -176,7 +164,7 @@ const App: React.FC = () => {
       setRepoFilterQuery('');
 
       // Now sync updates specifically for this searched user with their real repositories
-      const upInfo = await checkForAppUpdates(nextProfile.login || cleanUser, [...nextPublic, ...nextStarred]).catch(() => null);
+      const upInfo = await checkForAppUpdates();
       if (upInfo) {
         setUpdateInfo(upInfo);
       }
@@ -192,15 +180,8 @@ const App: React.FC = () => {
     setIsRefreshing(true);
     try {
       const data = await fetchGitHubUserData(user, true);
-      const isAlex = user.toLowerCase() === 'alexjameshq';
-
-      const nextPublic = (data.publicRepos && Array.isArray(data.publicRepos) && data.publicRepos.length > 0)
-        ? data.publicRepos
-        : (isAlex ? ALEX_PUBLIC_REPOSITORIES : (data.publicRepos || []));
-
-      const nextStarred = (data.starredRepos && Array.isArray(data.starredRepos) && data.starredRepos.length > 0)
-        ? data.starredRepos
-        : (isAlex ? INITIAL_REPOSITORIES : (data.starredRepos || []));
+      const nextPublic = Array.isArray(data.publicRepos) ? data.publicRepos : [];
+      const nextStarred = Array.isArray(data.starredRepos) ? data.starredRepos : [];
 
       const nextProfile: GitHubUserProfile = data.profile || {
         login: user,
@@ -221,7 +202,7 @@ const App: React.FC = () => {
       setPublicRepos(nextPublic);
       setStarredRepos(nextStarred);
       setCurrentUsername(nextProfile.login || user);
-      const info = await checkForAppUpdates(nextProfile.login || user, [...nextPublic, ...nextStarred]);
+      const info = await checkForAppUpdates();
       setUpdateInfo(info);
     } catch {
       // ignore
@@ -282,7 +263,7 @@ const App: React.FC = () => {
   const handleManualCheckUpdate = async () => {
     setIsCheckingUpdate(true);
     try {
-      const info = await checkForAppUpdates(currentUsername || 'AlexJamesHQ', [...publicRepos, ...starredRepos]);
+      const info = await checkForAppUpdates();
       setUpdateInfo(info);
     } finally {
       setIsCheckingUpdate(false);
