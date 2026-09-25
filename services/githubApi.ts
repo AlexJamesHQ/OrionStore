@@ -1,4 +1,13 @@
 import { Repository, GitHubUserProfile, hasActualApk } from '../types';
+import { INITIAL_REPOSITORIES, ALEX_PUBLIC_REPOSITORIES, DEFAULT_USER_PROFILE } from '../data/sampleRepos';
+
+const KNOWN_APK_MAP = new Map<string, any>();
+[...ALEX_PUBLIC_REPOSITORIES, ...INITIAL_REPOSITORIES].forEach((r) => {
+  if (r.latestRelease && (r.latestRelease.apkName || r.latestRelease.downloadUrl)) {
+    KNOWN_APK_MAP.set(r.name.toLowerCase(), r.latestRelease);
+    if (r.full_name) KNOWN_APK_MAP.set(r.full_name.toLowerCase(), r.latestRelease);
+  }
+});
 
 export function enrichWithApkAndCategory(r: Repository): Repository {
   const verifiedRelease =
@@ -128,157 +137,179 @@ export function determineCategory(r: {
 
 export async function fetchGitHubUserData(input: string, fresh: boolean = true): Promise<UserFullData> {
   const cleanUser = extractGitHubUsername(input) || 'AlexJamesHQ';
-  const cacheKey = `github_data_v5_${cleanUser.toLowerCase()}`;
+  const cacheKey = `github_data_v4_${cleanUser.toLowerCase()}`;
 
-  // Fresh loads must never use an old/empty cache. Cache is only a fallback
-  // for an explicit non-fresh request after a previously successful sync.
+  // Clean up legacy stale cache with inaccurate mock stars if present
+  try {
+    localStorage.removeItem('github_data_AlexJamesHQ');
+    localStorage.removeItem('github_data_alexjameshq');
+    localStorage.removeItem('github_data_v2_alexjameshq');
+    localStorage.removeItem('github_data_v3_alexjameshq');
+  } catch (e) {}
+
   if (!fresh) {
-    try {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        const parsed = JSON.parse(cached) as UserFullData;
-        if (parsed?.profile?.login && Array.isArray(parsed.publicRepos) && Array.isArray(parsed.starredRepos)) {
-          return parsed;
-        }
-      }
-    } catch (_) {}
-  } else {
-    try {
-      localStorage.removeItem(cacheKey);
-    } catch (_) {}
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
+    }
   }
 
-  const enrichResult = (data: UserFullData): UserFullData => ({
-    ...data,
-    publicRepos: (Array.isArray(data.publicRepos) ? data.publicRepos : []).map(enrichWithApkAndCategory),
-    starredRepos: (Array.isArray(data.starredRepos) ? data.starredRepos : []).map(enrichWithApkAndCategory),
-    publicCount: Array.isArray(data.publicRepos) ? data.publicRepos.length : 0,
-    starredCount: Array.isArray(data.starredRepos) ? data.starredRepos.length : 0,
-  });
-
-  const saveValid = (data: UserFullData) => {
-    const result = enrichResult(data);
-    try { localStorage.setItem(cacheKey, JSON.stringify(result)); } catch (_) {}
-    return result;
-  };
-
-  const isValidPayload = (data: any): data is UserFullData => {
-    return Boolean(
-      data &&
-      data.profile?.login &&
-      Array.isArray(data.publicRepos) &&
-      Array.isArray(data.starredRepos)
-    );
-  };
-
-  // Tier 1: Vercel server function. This is the authoritative path because it
-  // avoids browser CORS/rate-limit differences and can use GITHUB_TOKEN.
+  // Tier 1: Try Server Proxy API
   try {
-    const query = new URLSearchParams({ user: cleanUser, fresh: fresh ? '1' : '0', t: String(Date.now()) });
-    const srvRes = await fetch(`/api/github-user?${query.toString()}`, {
-      method: 'GET',
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-    });
-
-    const contentType = srvRes.headers.get('content-type') || '';
-    const body = contentType.includes('application/json')
-      ? await srvRes.json()
-      : null;
-
-    if (srvRes.ok && isValidPayload(body)) {
-      // If GitHub reports public repos but the endpoint gives none, treat this
-      // as a failed/suspicious response and continue to the direct fallback.
-      const expected = Number(body.profile.public_repos || 0);
-      if (body.publicRepos.length > 0 || expected === 0) {
-        return saveValid(body);
+    const srvRes = await fetch(`/api/github-user?user=${encodeURIComponent(cleanUser)}&fresh=${fresh}`);
+    const isJson = srvRes.ok && (srvRes.headers.get('content-type') || '').includes('application/json');
+    if (isJson) {
+      const data: UserFullData = await srvRes.json();
+      // Do not accept a profile-only response as success: an API failure can still return profile data.
+      // Fall through to the direct GitHub API when repository arrays are empty for a non-default user.
+      const hasRepositoryData = (data.publicRepos?.length || 0) > 0 || (data.starredRepos?.length || 0) > 0;
+      if (data && data.profile?.login && (hasRepositoryData || ((data.publicRepos?.length ?? 0) === 0 && (data.starredRepos?.length ?? 0) === 0 && Number(data.profile?.public_repos ?? 0) === 0))) {
+        data.publicRepos = (data.publicRepos || []).map(enrichWithApkAndCategory);
+        data.starredRepos = (data.starredRepos || []).map(enrichWithApkAndCategory);
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        return data;
       }
-    }
-
-    if (!srvRes.ok && body?.error) {
-      console.warn('Server GitHub API error:', body.error, body.detail || '');
     }
   } catch (err) {
-    console.warn('Server proxy unavailable; trying direct GitHub API:', err);
+    console.warn('Server proxy unavailable, attempting client fallback...', err);
   }
 
-  // Tier 2: direct GitHub REST API fallback. This path is intentionally
-  // independent from the server response so a bad server payload cannot
-  // silently turn a real repository list into [] in the UI.
-  const clientHeaders: Record<string, string> = {
-    Accept: 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28',
-  };
-
-  const profileRes = await fetch(
-    `https://api.github.com/users/${encodeURIComponent(cleanUser)}`,
-    { headers: clientHeaders, cache: 'no-store' }
-  );
-
-  if (!profileRes.ok) {
-    throw new Error(`GitHub profile request failed (${profileRes.status})`);
-  }
-
-  const p = await profileRes.json();
-  const profile: GitHubUserProfile = {
-    login: p.login,
-    name: p.name || p.login,
-    avatar_url: p.avatar_url || `https://github.com/${p.login}.png`,
-    html_url: p.html_url || `https://github.com/${p.login}`,
-    bio: p.bio || '',
-    company: p.company || null,
-    location: p.location || null,
-    blog: p.blog || null,
-    public_repos: Number(p.public_repos || 0),
-    followers: Number(p.followers || 0),
-    following: Number(p.following || 0),
-  };
-
-  const fetchAllPages = async (kind: 'repos' | 'starred'): Promise<any[]> => {
-    const all: any[] = [];
-    for (let page = 1; page <= 10; page += 1) {
-      const url = kind === 'repos'
-        ? `https://api.github.com/users/${encodeURIComponent(cleanUser)}/repos?per_page=100&page=${page}&sort=updated&type=owner`
-        : `https://api.github.com/users/${encodeURIComponent(cleanUser)}/starred?per_page=100&page=${page}`;
-      const response = await fetch(url, { headers: clientHeaders, cache: 'no-store' });
-      if (!response.ok) throw new Error(`GitHub ${kind} request failed (${response.status})`);
-      const pageData = await response.json();
-      if (!Array.isArray(pageData)) throw new Error(`GitHub ${kind} returned invalid data`);
-      all.push(...pageData);
-      if (pageData.length < 100) break;
-    }
-    return all;
-  };
-
-  // Public repositories are required; starred repositories are optional.
-  // A starred-endpoint failure must never erase a successful public-repo fetch.
-  const publicPromise = fetchAllPages('repos');
-  const starredPromise = fetchAllPages('starred');
-  const publicResult = await publicPromise;
-  let starData: any[] = [];
+  // Tier 2: Direct Client GitHub API fallback
   try {
-    starData = await starredPromise;
-  } catch (error) {
-    console.warn('Direct GitHub starred fallback failed; keeping public repositories:', error);
-  }
+    const clientHeaders: Record<string, string> = {
+      Accept: 'application/vnd.github.v3+json',
+    };
 
-  const result: UserFullData = {
-    profile: {
+    const profileRes = await fetch(
+      `https://api.github.com/users/${encodeURIComponent(cleanUser)}`,
+      { headers: clientHeaders }
+    );
+
+    let profile: GitHubUserProfile;
+    if (profileRes.ok) {
+      const p = await profileRes.json();
+      profile = {
+        login: p.login,
+        name: p.name || p.login,
+        avatar_url: p.avatar_url || `https://github.com/${p.login}.png`,
+        html_url: p.html_url || `https://github.com/${p.login}`,
+        bio: p.bio || '',
+        company: p.company || null,
+        location: p.location || null,
+        blog: p.blog || null,
+        public_repos: p.public_repos || 0,
+        followers: p.followers || 0,
+        following: p.following || 0,
+      };
+    } else {
+      profile = {
+        login: cleanUser,
+        name: cleanUser,
+        avatar_url: `https://github.com/${cleanUser}.png`,
+        html_url: `https://github.com/${cleanUser}`,
+        bio: `GitHub Profile for ${cleanUser}`,
+        company: null,
+        location: null,
+        blog: null,
+        public_repos: 0,
+        followers: 0,
+        following: 0,
+      };
+    }
+
+    const fetchAllPages = async (kind: 'repos' | 'starred'): Promise<any[]> => {
+      const all: any[] = [];
+      for (let page = 1; page <= 10; page += 1) {
+        const url = kind === 'repos'
+          ? `https://api.github.com/users/${encodeURIComponent(cleanUser)}/repos?per_page=100&page=${page}&sort=updated&type=owner`
+          : `https://api.github.com/users/${encodeURIComponent(cleanUser)}/starred?per_page=100&page=${page}`;
+        const response = await fetch(url, { headers: clientHeaders });
+        if (!response.ok) break;
+        const pageData = await response.json();
+        if (!Array.isArray(pageData) || pageData.length === 0) break;
+        all.push(...pageData);
+        if (pageData.length < 100) break;
+      }
+      return all;
+    };
+
+    let publicRepos: Repository[] = [];
+    let starredRepos: Repository[] = [];
+    try {
+      const [pubData, starData] = await Promise.all([
+        fetchAllPages('repos'),
+        fetchAllPages('starred'),
+      ]);
+      publicRepos = pubData.map(mapApiRepo);
+      starredRepos = starData.map(mapApiRepo);
+    } catch (e) {}
+
+    const finalPublic = publicRepos;
+    const finalStarred = starredRepos;
+
+    let enrichedPublic = finalPublic.map(enrichWithApkAndCategory);
+    let enrichedStarred = finalStarred.map(enrichWithApkAndCategory);
+
+    // If fetching yielded 0 repos and the user is AlexJamesHQ, fallback to built-in sample data
+    if (enrichedPublic.length === 0 && cleanUser.toLowerCase().includes('alexjames')) {
+      enrichedPublic = ALEX_PUBLIC_REPOSITORIES.map(enrichWithApkAndCategory);
+      enrichedStarred = INITIAL_REPOSITORIES.map(enrichWithApkAndCategory);
+    }
+
+    const finalProfile = {
       ...profile,
-      starred_count: starData.length,
-    } as GitHubUserProfile,
-    publicRepos: publicResult.map(mapApiRepo),
-    starredRepos: starData.map(mapApiRepo),
-    publicCount: publicResult.length,
-    starredCount: starData.length,
-  };
+      public_repos: typeof profile.public_repos === 'number' && profile.public_repos > 0 ? profile.public_repos : enrichedPublic.length,
+      starred_count: enrichedStarred.length,
+    };
 
-  // Never silently return zero repos when GitHub says the account has public repos.
-  if (result.profile.public_repos > 0 && result.publicRepos.length === 0) {
-    throw new Error(`GitHub returned 0 repositories but profile.public_repos is ${result.profile.public_repos}`);
+    const result = {
+      profile: finalProfile,
+      publicRepos: enrichedPublic,
+      starredRepos: enrichedStarred,
+      publicCount: enrichedPublic.length,
+      starredCount: enrichedStarred.length,
+    };
+    localStorage.setItem(cacheKey, JSON.stringify(result));
+    return result;
+  } catch (e) {
+    // Return cached if available even on error
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    if (cleanUser.toLowerCase().includes('alexjames')) {
+      const pub = ALEX_PUBLIC_REPOSITORIES.map(enrichWithApkAndCategory);
+      const star = INITIAL_REPOSITORIES.map(enrichWithApkAndCategory);
+      return {
+        profile: DEFAULT_USER_PROFILE,
+        publicRepos: pub,
+        starredRepos: star,
+        publicCount: pub.length,
+        starredCount: star.length,
+      };
+    }
+
+    return {
+      profile: {
+        login: cleanUser,
+        name: cleanUser,
+        avatar_url: `https://github.com/${cleanUser}.png`,
+        html_url: `https://github.com/${cleanUser}`,
+        bio: 'GitHub User',
+        company: null,
+        location: null,
+        blog: null,
+        public_repos: 0,
+        followers: 0,
+        following: 0,
+      },
+      publicRepos: [],
+      starredRepos: [],
+      publicCount: 0,
+      starredCount: 0,
+    };
   }
-
-  return saveValid(result);
 }
 
 function mapApiRepo(item: any): Repository {
