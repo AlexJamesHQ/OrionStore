@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { OrionAppItem } from '../types';
 import { Download, Check, X, Sparkles, ShieldCheck, HardDrive, RefreshCw, Smartphone, ExternalLink } from 'lucide-react';
 import { getDownloadUrlForApp } from '../services/orionAppsService';
+import confetti from 'canvas-confetti';
+import { playRetroSound } from '../services/sfxService';
 
 export type InAppDownloadInfo = any;
 
@@ -25,6 +27,18 @@ export const InAppDownloadModal: React.FC<InAppDownloadModalProps> = ({ app, onC
         if (prev >= 100) {
           clearInterval(interval);
           setStatus('completed');
+          
+          // Trigger glorious retro success sound synthesis
+          playRetroSound('success');
+
+          // Trigger high-quality colorful neobrutalist confetti explosion!
+          confetti({
+            particleCount: 120,
+            spread: 90,
+            origin: { y: 0.65 },
+            colors: ['#FFE600', '#FF5E00', '#6B21A8', '#10B981', '#3B82F6']
+          });
+
           return 100;
         }
         return prev + Math.floor(Math.random() * 18) + 12;

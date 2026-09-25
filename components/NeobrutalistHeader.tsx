@@ -30,9 +30,11 @@ export const NeobrutalistHeader: React.FC<NeobrutalistHeaderProps> = ({
         {/* Left: Avatar + Clean Name Display */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <a
-            href={user.html_url}
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              window.open(user.html_url, '_blank', 'noopener,noreferrer');
+            }}
             title={`Visit ${user.login} on GitHub`}
             className="group relative w-9 h-9 sm:w-11 sm:h-11 bg-white rounded-lg sm:rounded-xl border-2 sm:border-[2.5px] border-black p-0.5 shadow-[2px_2px_0px_#000] hover:scale-105 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all duration-200 flex-shrink-0 flex items-center justify-center overflow-hidden"
           >
@@ -52,9 +54,11 @@ export const NeobrutalistHeader: React.FC<NeobrutalistHeaderProps> = ({
           {/* Clean Name Display + Username */}
           <div className="flex flex-col min-w-0 justify-center">
             <a
-              href={user.html_url}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.open(user.html_url, '_blank', 'noopener,noreferrer');
+              }}
               className="text-black font-black text-xs sm:text-base md:text-lg tracking-tight truncate hover:opacity-80 transition-opacity leading-tight"
             >
               {displayName}
@@ -93,9 +97,11 @@ export const NeobrutalistHeader: React.FC<NeobrutalistHeaderProps> = ({
 
           {/* GitHub Button */}
           <a
-            href={user.html_url}
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              window.open(user.html_url, '_blank', 'noopener,noreferrer');
+            }}
             title="Open GitHub Profile"
             aria-label="GitHub Profile"
             className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-lg sm:rounded-xl border-2 sm:border-[2.5px] border-black shadow-[2px_2px_0px_#000] hover:bg-neutral-50 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center text-black cursor-pointer"

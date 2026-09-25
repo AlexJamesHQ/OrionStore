@@ -13,5 +13,6 @@ export { OrionAppCard } from './OrionAppCard';
 export { OrionAppDetailModal } from './OrionAppDetailModal';
 export { OrionSettingsModal, type StoreSettings } from './OrionSettingsModal';
 export { AddAppModal } from './AddAppModal';
+export { RequestAppModal } from './RequestAppModal';
 export { TextType } from './TextType';
 export { GitHubIcon, TelegramIcon, FacebookIcon, InstagramIcon, StarIcon } from './Icons';

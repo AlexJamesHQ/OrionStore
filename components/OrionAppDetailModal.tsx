@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Info,
   Maximize2,
+  QrCode,
 } from 'lucide-react';
 import { getDownloadUrlForApp } from '../services/orionAppsService';
 
@@ -32,6 +33,7 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
   const [activeScreenshot, setActiveScreenshot] = useState<number>(0);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
+  const [showQr, setShowQr] = useState(false);
 
   if (!app) return null;
 
@@ -95,6 +97,30 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
 
   const platformInfo = getPlatformInfo();
 
+  // Clean GitHub Username extraction helper
+  const getCleanGitHubUsername = () => {
+    const pkg = (app.packageName || '').toLowerCase();
+    if (pkg === 'moe.rukamori.archivetune') {
+      return 'RukaMori';
+    }
+    if (app.githubRepo) {
+      const parts = app.githubRepo.split('/');
+      if (parts.length > 0 && parts[0].trim()) {
+        return parts[0].trim();
+      }
+    }
+    if (app.author) {
+      const cleanAuthor = app.author.replace(/[^a-zA-Z0-9_-]/g, '');
+      if (cleanAuthor) return cleanAuthor;
+    }
+    return 'github';
+  };
+
+  const githubUsername = getCleanGitHubUsername();
+  const authorName = (app.packageName || '').toLowerCase() === 'moe.rukamori.archivetune' 
+    ? 'RukaMori' 
+    : (app.author || 'Open Source Developer');
+
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 select-none">
@@ -128,7 +154,7 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
                   {app.name}
                 </h2>
                 <p className="font-mono text-xs text-neutral-800 truncate">
-                  by {app.author || 'Open Source Developer'} • {app.version || 'Latest'}
+                  Version: {app.version || 'Latest'}
                 </p>
               </div>
             </div>
@@ -172,24 +198,96 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={handleDownload}
-                  className="py-2.5 px-5 bg-[#FFE600] text-black border-2 border-black rounded-xl font-black text-xs sm:text-sm uppercase flex items-center gap-2 shadow-[3px_3px_0px_#000] hover:bg-yellow-300 hover:scale-105 active:scale-95 active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
+                  className="py-2.5 px-5 bg-[#FFE600] text-black border-2 border-black rounded-xl font-black text-xs sm:text-sm uppercase flex items-center gap-2 shadow-[3px_3px_0px_#000] hover:bg-yellow-300 hover:scale-105 active:scale-95 active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer w-full justify-center"
                 >
                   <Download className="w-4 h-4 stroke-[2.5]" />
                   <span>DOWNLOAD APK</span>
                 </button>
-
-                {(app.githubRepo || app.repoUrl) && (
-                  <a
-                    href={app.githubRepo ? `https://github.com/${app.githubRepo}` : app.repoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2.5 bg-white text-black border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] hover:bg-neutral-100 cursor-pointer"
-                    title="View Source on GitHub"
-                  >
-                    <ExternalLink className="w-4 h-4 stroke-[2.5]" />
-                  </a>
-                )}
               </div>
+            </div>
+
+            {/* Publisher Info Card (Shows Avatar + Name + Convenient Click-to-Copy, No External Redirection) */}
+            <div className="bg-white border-2 border-black rounded-2xl p-3.5 shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3 select-none">
+              <div className="flex items-center gap-3">
+                <img
+                  src={`https://github.com/${githubUsername}.png`}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=FFE600&color=000&bold=true`;
+                  }}
+                  alt={authorName}
+                  className="w-10 h-10 rounded-xl border-2 border-black object-cover shadow-[1.5px_1.5px_0px_#000] pointer-events-none"
+                />
+                <div>
+                  <span className="text-[10px] font-mono font-bold text-neutral-500 uppercase block leading-none">PUBLISHED BY</span>
+                  <span className="font-black text-sm text-black block mt-0.5 select-all">{authorName}</span>
+                </div>
+              </div>
+
+              {authorName && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const profileUrl = `https://github.com/${githubUsername}`;
+                    navigator.clipboard.writeText(profileUrl);
+                    // Standard visual feed-back on copy
+                    const btn = document.getElementById('copy-author-btn');
+                    if (btn) {
+                      btn.innerText = 'COPIED!';
+                      btn.classList.add('bg-[#FFE600]');
+                      setTimeout(() => {
+                        btn.innerText = 'COPY PROFILE';
+                        btn.classList.remove('bg-[#FFE600]');
+                      }, 1200);
+                    }
+                  }}
+                  id="copy-author-btn"
+                  className="py-1.5 px-3 bg-[#FAF6EE] hover:bg-[#FFE600] border-2 border-black rounded-xl text-[10px] font-mono font-black uppercase transition-all shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer"
+                >
+                  COPY PROFILE
+                </button>
+              )}
+            </div>
+
+            {/* Quick QR Code Scan & Download Section */}
+            <div className="bg-[#FAF6EE] border-2 border-black rounded-2xl p-3 sm:p-4 shadow-[3px_3px_0px_#000] transition-all">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowQr(!showQr);
+                }}
+                className="w-full flex items-center justify-between text-black font-black text-xs sm:text-sm uppercase tracking-wider cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <QrCode className="w-4 h-4 text-black stroke-[2.5]" />
+                  <span>Scan to Download on Phone</span>
+                </div>
+                <span className="px-2 py-0.5 bg-white border border-black rounded text-[10px] font-mono font-bold shadow-[1px_1px_0px_#000]">
+                  {showQr ? 'HIDE QR' : 'SHOW QR'}
+                </span>
+              </button>
+
+              <AnimatePresence>
+                {showQr && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden flex flex-col items-center justify-center pt-3.5 text-center"
+                  >
+                    <div className="p-3 bg-white border-2 border-black rounded-2xl shadow-[3px_3px_0px_#000] mb-2 relative group overflow-hidden">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&color=000000&bgcolor=ffffff&data=${encodeURIComponent(downloadUrl)}`}
+                        alt="Download QR Code"
+                        className="w-32 h-32 object-contain pointer-events-none"
+                      />
+                    </div>
+                    <p className="font-mono text-[10px] sm:text-xs text-neutral-600 max-w-xs mt-1.5 leading-relaxed">
+                      Point your phone camera or QR scanner at the screen to instantly trigger direct APK download!
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Quick Specs Grid */}

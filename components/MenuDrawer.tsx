@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, Sparkles, HelpCircle, ChevronDown, ChevronUp, BookOpen, ShieldCheck, CheckCircle2, Code2, Award, Zap } from 'lucide-react';
+import { X, ExternalLink, Sparkles, HelpCircle, ChevronDown, ChevronUp, BookOpen, ShieldCheck, CheckCircle2, Code2, Award, Zap, QrCode } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { GitHubUserProfile } from '../types';
 import { GitHubIcon, TelegramIcon, FacebookIcon, InstagramIcon, StarIcon } from './Icons';
 import { TextType } from './TextType';
+import { playRetroSound } from '../services/sfxService';
 
 interface MenuDrawerProps {
   isOpen: boolean;
@@ -12,18 +14,34 @@ interface MenuDrawerProps {
   selectedCategory: string;
   onSelectCategory: (cat: string) => void;
   availableCategories: string[];
-  sortBy: 'updated' | 'stars' | 'name';
-  onSelectSortBy: (sort: 'updated' | 'stars' | 'name') => void;
+  sortBy: any;
+  onSelectSortBy: (sort: any) => void;
   totalStarredCount?: number;
   onReloadApps?: () => void;
+  accentColor: string;
+  onAccentColorChange: (color: string) => void;
+  gridStyle: 'static' | 'drift' | 'warp' | 'dots' | 'dots-drift';
+  onGridStyleChange: (style: 'static' | 'drift' | 'warp' | 'dots' | 'dots-drift') => void;
 }
 
 export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   isOpen,
   onClose,
   currentUser,
+  accentColor,
+  onAccentColorChange,
+  gridStyle,
+  onGridStyleChange,
 }) => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [showDevQr, setShowDevQr] = useState(false);
+  const [sfxEnabled, setSfxEnabled] = useState(() => {
+    try {
+      return localStorage.getItem('orion_sfx_enabled') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   React.useEffect(() => {
     if (isOpen) {
@@ -123,13 +141,51 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                     Alex James
                   </h4>
                   <p className="font-mono text-xs font-bold text-neutral-600 truncate mt-0.5">
-                    @AlexJamesHQ
+                    @{developerProfile.login || 'AlexJamesHQ'}
                   </p>
                   <p className="font-mono text-[11px] font-extrabold text-[#6B21A8] flex items-center gap-1 mt-1">
                     <Award className="w-3.5 h-3.5 text-amber-500" />
                     <span>Lead Developer & Architect</span>
                   </p>
                 </div>
+              </div>
+
+              {/* QR Toggler & Code Section */}
+              <div className="mt-3.5 pt-3 border-t-2 border-dashed border-neutral-100 flex flex-col items-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playRetroSound('toggle');
+                    setShowDevQr(!showDevQr);
+                  }}
+                  className="w-full py-1.5 px-3 bg-[#FAF6EE] hover:bg-[#FFE600] border-2 border-black rounded-xl text-[10px] font-mono font-black uppercase tracking-wider transition-all shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>{showDevQr ? 'HIDE PROFILE QR' : 'SHOW PROFILE QR'}</span>
+                </button>
+
+                <AnimatePresence>
+                  {showDevQr && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden flex flex-col items-center justify-center pt-3 text-center w-full"
+                    >
+                      <div className="p-2.5 bg-white border-2 border-black rounded-2xl shadow-[3px_3px_0px_#000] mb-1.5">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&color=000000&bgcolor=ffffff&data=${encodeURIComponent(developerProfile.html_url || "https://github.com/AlexJamesHQ")}`}
+                          alt="Developer Profile QR"
+                          className="w-28 h-28 object-contain pointer-events-none"
+                        />
+                      </div>
+                      <p className="font-mono text-[9px] text-neutral-500 mt-1">
+                        Scan with your phone to instantly visit my official GitHub!
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </div>
@@ -160,6 +216,116 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 <span><strong>Bookmark:</strong> Click the heart icon to save favorite apps locally for quick access.</span>
               </li>
             </ul>
+          </div>
+
+          {/* Neobrutalist Accent Theme Color Picker */}
+          <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] select-none">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-[#FF5E00]" />
+              <h4 className="font-black text-xs uppercase tracking-wider text-black">
+                Accent Theme Color
+              </h4>
+            </div>
+            <p className="text-[10px] font-mono text-neutral-500 mb-3">Select your custom neobrutalist signature color</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              {[
+                { hex: '#F9D949', name: 'Retro Yellow' },
+                { hex: '#86C8BC', name: 'Sage Teal' },
+                { hex: '#6EA8FF', name: 'Soft Blue' },
+                { hex: '#FF9EB5', name: 'Rose Pink' },
+                { hex: '#FF8050', name: 'Warm Coral' },
+                { hex: '#C392FF', name: 'Lavender' }
+              ].map((color) => (
+                <button
+                  key={color.hex}
+                  type="button"
+                  onClick={() => {
+                    playRetroSound('toggle');
+                    onAccentColorChange(color.hex);
+                  }}
+                  className={`w-8 h-8 rounded-full border-2 border-black shadow-[1.5px_1.5px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none transition-all cursor-pointer relative flex items-center justify-center`}
+                  style={{ backgroundColor: color.hex }}
+                  title={color.name}
+                >
+                  {accentColor.toLowerCase() === color.hex.toLowerCase() && (
+                    <span className="w-3.5 h-3.5 bg-black rounded-full border border-white" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Neobrutalist Grid Style Customizer */}
+          <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] select-none">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4 text-[#FF5E00]" />
+              <h4 className="font-black text-xs uppercase tracking-wider text-black">
+                Background Grid Style
+              </h4>
+            </div>
+            <p className="text-[10px] font-mono text-neutral-500 mb-3">Choose your moving backdrop animation</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'static', label: 'Classic Static' },
+                { id: 'drift', label: 'Slow Drift' },
+                { id: 'warp', label: 'Hyperspeed' },
+                { id: 'dots', label: 'Retro Dots' },
+                { id: 'dots-drift', label: 'Dots Drift' }
+              ].map((styleOpt) => (
+                <button
+                  key={styleOpt.id}
+                  type="button"
+                  onClick={() => {
+                    playRetroSound('toggle');
+                    onGridStyleChange(styleOpt.id as any);
+                  }}
+                  className={`py-1.5 px-2 text-[9px] font-mono font-black uppercase tracking-tight shadow-[1.5px_1.5px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none transition-all cursor-pointer truncate rounded-xl border-2 border-black ${
+                    gridStyle === styleOpt.id
+                      ? 'bg-black text-[#FFE600]'
+                      : 'bg-[#FAF6EE] text-black hover:bg-neutral-100'
+                  }`}
+                  style={gridStyle === styleOpt.id ? { color: accentColor } : undefined}
+                >
+                  {styleOpt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Retro Audio Effects Settings */}
+          <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] select-none">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Zap className="w-4 h-4 text-[#FF5E00] fill-[#FF5E00]" />
+                <div>
+                  <h4 className="font-black text-xs uppercase tracking-wider text-black">
+                    8-Bit Retro Sound
+                  </h4>
+                  <p className="text-[10px] font-mono text-neutral-500 mt-0.5">Play nostalgic feedback sounds</p>
+                </div>
+              </div>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  const current = localStorage.getItem('orion_sfx_enabled') !== 'false';
+                  localStorage.setItem('orion_sfx_enabled', (!current).toString());
+                  setSfxEnabled(!current);
+                  // Play cute chirpy toggle switch sound
+                  playRetroSound('toggle');
+                }}
+                className={`relative inline-flex h-6.5 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-black transition-colors duration-200 ease-in-out focus:outline-none ${
+                  sfxEnabled ? 'bg-[#FFE600]' : 'bg-neutral-200'
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-4.5 w-4.5 transform rounded-full bg-black shadow ring-0 transition duration-200 ease-in-out mt-[2px] ${
+                    sfxEnabled ? 'translate-x-6' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
           </div>
 
           {/* Frequently Asked Questions (FAQs) */}
@@ -209,9 +375,11 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             </label>
 
             <a
-              href="https://t.me/ALEX_JAMES_DEV"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.open("https://t.me/ALEX_JAMES_DEV", "_blank", "noopener,noreferrer");
+              }}
               className="w-full p-2.5 bg-[#FFE600] text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-between shadow-[2px_2px_0px_#000] hover:bg-yellow-300 hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
             >
               <div className="flex items-center gap-2">
@@ -223,9 +391,11 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
 
             <div className="grid grid-cols-2 gap-2">
               <a
-                href="https://www.facebook.com/share/1J6T4MuGbJ/"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.open("https://www.facebook.com/share/1J6T4MuGbJ/", "_blank", "noopener,noreferrer");
+                }}
                 className="p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-[#FAF6EE] hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
               >
                 <FacebookIcon className="w-4 h-4 text-black" />
@@ -234,9 +404,11 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               </a>
 
               <a
-                href="https://www.instagram.com/alex.james.dev"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.open("https://www.instagram.com/alex.james.dev", "_blank", "noopener,noreferrer");
+                }}
                 className="p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-[#FAF6EE] hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
               >
                 <InstagramIcon className="w-4 h-4 text-black" />
@@ -246,9 +418,11 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             </div>
 
             <a
-              href="https://github.com/AlexJamesHQ"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.open("https://github.com/AlexJamesHQ", "_blank", "noopener,noreferrer");
+              }}
               className="w-full p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-[2px_2px_0px_#000] hover:bg-neutral-50 hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
             >
               <GitHubIcon className="w-4 h-4" />
