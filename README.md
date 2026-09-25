@@ -112,7 +112,8 @@ npm run start
 
 - **Developer**: Alex James
 - **GitHub**: [AlexJamesHQ](https://github.com/AlexJamesHQ)
-- **Telegram Channel**: [ALEX_JAMES_DEV](https://t.me/ALEX_JAMES_DEV)
+- **portfolio**:[Alex James](https://alex-james.vercel.app/)
+- **Telegram Channel**: [ΛNᗪROIᗪ LΛᗷ](https://t.me/ALEX_JAMES_DEV)
 
 ---
 
