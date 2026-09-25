@@ -1,79 +1,167 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { Repository, GitHubUserProfile, hasActualApk } from './types';
-import {
-  fetchGitHubUserData,
-  extractGitHubUsername,
-} from './services/githubApi';
-import {
-  checkForAppUpdates,
-  AppUpdateInfo,
-  isUpdatePermanentlyIgnored,
-  recordUpdateDismissal,
-} from './services/updaterService';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { OrionAppItem, GitHubUserProfile } from './types';
+import { localAppsData } from './data/localAppsData';
+import { fetchOrionApps } from './services/orionAppsService';
+import { DEFAULT_USER_PROFILE } from './data/sampleRepos';
 import {
   NeobrutalistHeader,
-  TotalStarredCard,
-  RepoCard,
   MenuDrawer,
-  RepoDetailsModal,
-  AppUpdateModal,
-  InAppDownloadModal,
-  InAppDownloadInfo,
   LogoLoop,
   FlipCard,
   TextPressure,
+  OrionAppCard,
+  OrionAppDetailModal,
+  InAppDownloadModal,
   GitHubIcon,
 } from './components';
-import { ApkFilterMode } from './components/MenuDrawer';
 import {
   Search,
-  SlidersHorizontal,
   RefreshCw,
   X,
   ArrowUpRight,
   Zap,
-  Link as LinkIcon,
   Sparkles,
   Download,
+  Flame,
+  Grid,
+  Layers,
+  Heart,
+  Smartphone,
+  Tv,
+  Monitor,
+  ShieldCheck,
+  Check,
+  LayoutGrid,
+  List,
+  ArrowUpDown,
+  ArrowUp,
+  TrendingUp,
 } from 'lucide-react';
 
-type TabView = 'public' | 'starred' | 'apk';
+type StoreTab = 'all' | 'featured' | 'utilities' | 'favorites';
+type SortOption = 'recommended' | 'name' | 'patches' | 'category';
+type PlatformOption = 'all' | 'mobile' | 'tv' | 'pc';
 
-const App: React.FC = () => {
-  // Current active user - default starts with AlexJamesHQ
-  const [currentUsername, setCurrentUsername] = useState('AlexJamesHQ');
-  const [userProfile, setUserProfile] = useState<GitHubUserProfile>({ login: 'AlexJamesHQ', name: 'Loading…', avatar_url: 'https://github.com/AlexJamesHQ.png', html_url: 'https://github.com/AlexJamesHQ', bio: '', company: null, location: null, blog: null, public_repos: 0, followers: 0, following: 0, starred_count: 0 });
+const POPULAR_SEARCH_PILLS = [
+  { label: 'YouTube', query: 'youtube' },
+  { label: 'Music', query: 'music' },
+  { label: 'Instagram', query: 'instagram' },
+  { label: 'Shizuku', query: 'shizuku' },
+  { label: 'Ad-Free', query: 'ad-free' },
+  { label: 'Files', query: 'file' },
+  { label: 'Launchers', query: 'launcher' },
+  { label: 'Browser', query: 'browser' },
+  { label: 'Social', query: 'social' },
+  { label: 'Tools', query: 'tool' },
+];
 
-  // Repositories buckets: Public repos & Starred repos for AlexJamesHQ
-  const [publicRepos, setPublicRepos] = useState<Repository[]>([]);
-  const [starredRepos, setStarredRepos] = useState<Repository[]>([]);
+export const App: React.FC = () => {
+  // Developer profile
+  const [userProfile] = useState<GitHubUserProfile>(DEFAULT_USER_PROFILE);
 
-  // Active Tab view: Default is 'public'
-  const [activeTab, setActiveTab] = useState<TabView>('public');
-
-  // Loading & status
+  // Orion Apps State (starts with local curated data immediately, then loads all 1,081+ apps)
+  const [apps, setApps] = useState<OrionAppItem[]>(() => (localAppsData as OrionAppItem[]) || []);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // App & APK Update checking state
-  const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
-  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+  // Selected App for Detail Modal & In-App Download Modal
+  const [selectedApp, setSelectedApp] = useState<OrionAppItem | null>(null);
+  const [downloadingApp, setDownloadingApp] = useState<OrionAppItem | null>(null);
 
-  // GitHub User or Profile Link Search Input
-  const [usernameInput, setUsernameInput] = useState('');
+  // Active Store Tab persisted
+  const [activeTab, setActiveTab] = useState<StoreTab>(() => {
+    try {
+      return (localStorage.getItem('orion_active_tab') as StoreTab) || 'all';
+    } catch {
+      return 'all';
+    }
+  });
 
-  // Search filter query (empty by default)
-  const [repoFilterQuery, setRepoFilterQuery] = useState('');
+  // Search and Filter State persisted
+  const [searchQuery, setSearchQuery] = useState<string>(() => {
+    try {
+      return localStorage.getItem('orion_search_query') || '';
+    } catch {
+      return '';
+    }
+  });
 
-  // Category and sorting filters
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<'updated' | 'stars' | 'name'>('updated');
-  const [apkFilterMode, setApkFilterMode] = useState<ApkFilterMode>('all');
-  const hideNonApk = apkFilterMode === 'apk_only';
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    try {
+      return localStorage.getItem('orion_selected_category') || 'All';
+    } catch {
+      return 'All';
+    }
+  });
+
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    try {
+      return (localStorage.getItem('orion_sort_by') as SortOption) || 'recommended';
+    } catch {
+      return 'recommended';
+    }
+  });
+
+  const [viewMode, setViewMode] = useState<'grid' | 'compact'>(() => {
+    try {
+      return (localStorage.getItem('orion_view_mode') as 'grid' | 'compact') || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
+  const [visibleCount, setVisibleCount] = useState<number>(36);
+
+  // Sync states to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('orion_active_tab', activeTab);
+    } catch {}
+  }, [activeTab]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('orion_search_query', searchQuery);
+    } catch {}
+  }, [searchQuery]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('orion_selected_category', selectedCategory);
+    } catch {}
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('orion_sort_by', sortBy);
+    } catch {}
+  }, [sortBy]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('orion_view_mode', viewMode);
+    } catch {}
+  }, [viewMode]);
+
+  // Show Back To Top Button
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // Search Input ref for keyboard shortcuts
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Favorites state persisted in localStorage
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('orion_favorite_apps');
+      return saved ? JSON.parse(saved) : ['youtube-revanced', 'shizuku', 'instagram-piko'];
+    } catch {
+      return ['youtube-revanced', 'shizuku', 'instagram-piko'];
+    }
+  });
+
+  // Drawer & Modals
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Heart Rain Animation state
   const [heartParticles, setHeartParticles] = useState<Array<{ id: number; x: number; size: number; speed: number; emoji: string }>>([]);
@@ -89,583 +177,478 @@ const App: React.FC = () => {
     setHeartParticles((prev) => [...prev, ...newParticles]);
 
     setTimeout(() => {
-      setHeartParticles((prev) => prev.filter(p => !newParticles.some(np => np.id === p.id)));
+      setHeartParticles((prev) => prev.filter((p) => !newParticles.some((np) => np.id === p.id)));
     }, 5000);
   };
 
-  // Modals state
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [selectedRepo, setSelectedRepo] = useState<Repository | null>(null);
-  const [inAppDownloadInfo, setInAppDownloadInfo] = useState<InAppDownloadInfo | null>(null);
-
-  // Check for app/APK updates automatically on load and fetch live real-time GitHub data
+  // Back to top scroll listener
   useEffect(() => {
-    // Live real-time fetch from GitHub on load
-    loadUserData('AlexJamesHQ', true);
-
-    const runUpdateCheck = async () => {
-      setIsCheckingUpdate(true);
-      try {
-        const info = await checkForAppUpdates();
-        setUpdateInfo(info);
-        // If user has dismissed the update banner 3 times, do not show banner automatically
-        if (info.hasUpdate && isUpdatePermanentlyIgnored(info.latestVersion)) {
-          setIsBannerDismissed(true);
-        }
-      } finally {
-        setIsCheckingUpdate(false);
-      }
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
     };
-    runUpdateCheck();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Dismiss banner handler: records dismissal count. If dismissed 3 times, it stops popping up automatically.
-  const handleDismissBanner = () => {
-    setIsBannerDismissed(true);
-    if (updateInfo?.latestVersion) {
-      recordUpdateDismissal(updateInfo.latestVersion);
-    }
-  };
-
-  // Function to load any GitHub user profile & repositories with real-time freshness
-  const loadUserData = async (usernameOrUrl: string, fresh: boolean = true) => {
-    const cleanUser = extractGitHubUsername(usernameOrUrl);
-    if (!cleanUser) return;
-
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const data = await fetchGitHubUserData(cleanUser, fresh);
-      const nextPublic = Array.isArray(data.publicRepos) ? data.publicRepos : [];
-      const nextStarred = Array.isArray(data.starredRepos) ? data.starredRepos : [];
-
-      const nextProfile: GitHubUserProfile = data.profile || {
-        login: cleanUser,
-        name: cleanUser,
-        avatar_url: `https://github.com/${cleanUser}.png`,
-        html_url: `https://github.com/${cleanUser}`,
-        bio: `GitHub Profile for ${cleanUser}`,
-        company: null,
-        location: null,
-        blog: null,
-        public_repos: nextPublic.length,
-        followers: 0,
-        following: 0,
-        starred_count: nextStarred.length,
-      };
-
-      setUserProfile(nextProfile);
-      setPublicRepos(nextPublic);
-      setStarredRepos(nextStarred);
-      setCurrentUsername(nextProfile.login || cleanUser);
-
-      // Reset filters so ALL repos are shown for newly loaded user
-      setActiveTab('public');
-      setApkFilterMode('all');
-      setSelectedCategory('All');
-      setRepoFilterQuery('');
-
-      // Now sync updates specifically for this searched user with their real repositories
-      const upInfo = await checkForAppUpdates();
-      if (upInfo) {
-        setUpdateInfo(upInfo);
+  // Keyboard shortcut to focus search input: '/' or 's'
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === '/' || e.key === 's') && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to load GitHub repositories.';
-      setLoadError(message);
-      console.error('OrionStore GitHub sync failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
-  // Refresh current user data with live fresh flag and sync updates
-  const handleRefresh = async (user: string) => {
+  // Load all 1,081+ Orion Apps on mount
+  useEffect(() => {
+    const loadApps = async () => {
+      setIsLoading(true);
+      try {
+        const loaded = await fetchOrionApps();
+        if (loaded && loaded.length > 0) {
+          setApps(loaded);
+        }
+      } catch (err) {
+        console.error('Failed to load Orion apps:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadApps();
+  }, []);
+
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setLoadError(null);
     try {
-      const data = await fetchGitHubUserData(user, true);
-      const nextPublic = Array.isArray(data.publicRepos) ? data.publicRepos : [];
-      const nextStarred = Array.isArray(data.starredRepos) ? data.starredRepos : [];
-
-      const nextProfile: GitHubUserProfile = data.profile || {
-        login: user,
-        name: user,
-        avatar_url: `https://github.com/${user}.png`,
-        html_url: `https://github.com/${user}`,
-        bio: `GitHub Profile for ${user}`,
-        company: null,
-        location: null,
-        blog: null,
-        public_repos: nextPublic.length,
-        followers: 0,
-        following: 0,
-        starred_count: nextStarred.length,
-      };
-
-      setUserProfile(nextProfile);
-      setPublicRepos(nextPublic);
-      setStarredRepos(nextStarred);
-      setCurrentUsername(nextProfile.login || user);
-      const info = await checkForAppUpdates();
-      setUpdateInfo(info);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to refresh GitHub repositories.';
-      setLoadError(message);
-      console.error('OrionStore GitHub refresh failed:', error);
+      localStorage.removeItem('orion_apps_data_v3');
+      const freshApps = await fetchOrionApps();
+      if (freshApps && freshApps.length > 0) {
+        setApps(freshApps);
+      }
+    } catch (err) {
+      console.error('Refresh failed:', err);
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // Switch user handler
-  const handleSwitchUser = (user: string) => {
-    loadUserData(user, true);
-  };
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Focus search: 's'
-      if (e.key === 's' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
-        e.preventDefault();
-        document.querySelector<HTMLInputElement>('input[placeholder*="Search GitHub"]')?.focus();
-      }
-      // Refresh: 'r'
-      if (e.key === 'r') {
-        e.preventDefault();
-        handleRefresh(currentUsername);
-      }
-      // Cycle repositories: Arrow keys
-      if (['ArrowDown', 'ArrowUp'].includes(e.key)) {
-        const repoCards = document.querySelectorAll('.group.relative');
-        if (repoCards.length === 0) return;
-        
-        const activeElement = document.activeElement;
-        let index = -1;
-        repoCards.forEach((card, i) => { if (card === activeElement) index = i; });
-        
-        if (e.key === 'ArrowDown') {
-          const next = index === -1 ? 0 : Math.min(index + 1, repoCards.length - 1);
-          (repoCards[next] as HTMLElement).focus();
-        } else {
-          const prev = index === -1 ? repoCards.length - 1 : Math.max(index - 1, 0);
-          (repoCards[prev] as HTMLElement).focus();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentUsername, handleRefresh]);
-
-  // Submit GitHub username or link in search bar
-  const handleUserSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!usernameInput.trim()) return;
-    loadUserData(usernameInput.trim(), true);
-    setUsernameInput('');
-  };
-
-
-  const handleManualCheckUpdate = async () => {
-    setIsCheckingUpdate(true);
-    try {
-      const info = await checkForAppUpdates();
-      setUpdateInfo(info);
-    } finally {
-      setIsCheckingUpdate(false);
-    }
-  };
-
-  // Listen for pasted link or Enter press in the repository filter box
-  const handleRepoFilterKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const val = repoFilterQuery.trim();
-      if (
-        val.includes('github.com/') ||
-        val.startsWith('http://') ||
-        val.startsWith('https://') ||
-        val.startsWith('@')
-      ) {
-        e.preventDefault();
-        loadUserData(val);
-        setRepoFilterQuery('');
-      }
-    }
-  };
-
-  const handleRepoFilterChange = (val: string) => {
-    setRepoFilterQuery(val);
-    if (
-      val.includes('github.com/') ||
-      (val.startsWith('http') && val.includes('github'))
-    ) {
-      loadUserData(val);
-      setRepoFilterQuery('');
-    }
-  };
-
-  // Combined Repositories based on active tab
-  const currentBaseList = useMemo(() => {
-    if (activeTab === 'public') return publicRepos;
-    if (activeTab === 'starred') return starredRepos;
-    // 'apk' tab shows only APK repos
-    const combined = [...publicRepos, ...starredRepos];
-    const seen = new Set<string>();
-    return combined.filter((r) => {
-      if (!hasActualApk(r)) return false;
-      if (seen.has(r.full_name)) return false;
-      seen.add(r.full_name);
-      return true;
+  const handleToggleFavorite = (appId: string) => {
+    setFavoriteIds((prev) => {
+      const updated = prev.includes(appId)
+        ? prev.filter((id) => id !== appId)
+        : [...prev, appId];
+      try {
+        localStorage.setItem('orion_favorite_apps', JSON.stringify(updated));
+      } catch {}
+      return updated;
     });
-  }, [activeTab, publicRepos, starredRepos]);
+  };
 
-  // Total APK count across all repos
-  const totalApkCount = useMemo(() => {
-    const combined = [...publicRepos, ...starredRepos];
-    const seen = new Set<string>();
-    return combined.filter((r) => {
-      if (!hasActualApk(r)) return false;
-      if (seen.has(r.full_name)) return false;
-      seen.add(r.full_name);
-      return true;
-    }).length;
-  }, [publicRepos, starredRepos]);
-
-  // Counts for the currently active tab's list
-  const currentApkCount = useMemo(
-    () => currentBaseList.filter((r) => hasActualApk(r)).length,
-    [currentBaseList]
-  );
-  const currentNonApkCount = useMemo(
-    () => currentBaseList.filter((r) => !hasActualApk(r)).length,
-    [currentBaseList]
-  );
-
-  // Extract Categories available in current list
-  const availableCategories = useMemo(() => {
-    const cats = new Set<string>();
-    currentBaseList.forEach((r) => {
-      if (r.category) cats.add(r.category);
+  // Clean Categories with counts
+  const categoriesWithCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    apps.forEach((a) => {
+      if (a.category) {
+        const clean = a.category.split('/')[0].trim();
+        if (clean) {
+          map.set(clean, (map.get(clean) || 0) + 1);
+        }
+      }
     });
-    return Array.from(cats);
-  }, [currentBaseList]);
 
-  // Filtered & Sorted repositories
-  const filteredRepos = useMemo(() => {
-    return currentBaseList
-      .filter((repo) => {
-        const query = repoFilterQuery.toLowerCase().trim();
-        const matchesQuery =
-          !query ||
-          repo.name.toLowerCase().includes(query) ||
-          (repo.description && repo.description.toLowerCase().includes(query)) ||
-          repo.category?.toLowerCase().includes(query) ||
-          (repo.latestRelease?.apkName && repo.latestRelease.apkName.toLowerCase().includes(query)) ||
-          (repo.latestRelease?.tagName && repo.latestRelease.tagName.toLowerCase().includes(query));
+    const sortedCats = Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name]) => name);
 
-        const matchesCategory =
-          selectedCategory === 'All' || repo.category === selectedCategory;
+    return ['All', ...sortedCats];
+  }, [apps]);
 
-        const isApk = hasActualApk(repo);
-        let matchesApkFilter = true;
-        if (apkFilterMode === 'apk_only') {
-          matchesApkFilter = isApk;
-        } else if (apkFilterMode === 'non_apk_only') {
-          // "আর ওখানে কিলিক করলে apk ছারা যেগুলো আছে ওই গুলো দেখাবে"
-          matchesApkFilter = !isApk;
-        }
-
-        return matchesQuery && matchesCategory && matchesApkFilter;
-      })
-      .sort((a, b) => {
-        // Repositories with authentic APK are ALWAYS placed first
-        const aHasApk = hasActualApk(a);
-        const bHasApk = hasActualApk(b);
-        if (aHasApk && !bHasApk) return -1;
-        if (!aHasApk && bHasApk) return 1;
-
-        if (sortBy === 'updated') {
-          return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
-        }
-        if (sortBy === 'stars') {
-          if (b.stargazers_count !== a.stargazers_count) {
-            return b.stargazers_count - a.stargazers_count;
-          }
-          return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
-        }
-        return a.name.localeCompare(b.name);
+  // Tab filtering
+  const tabFilteredApps = useMemo(() => {
+    if (activeTab === 'featured') {
+      return apps.filter((a) => a.isFeatured || (a.patches && a.patches.length > 0));
+    }
+    if (activeTab === 'utilities') {
+      return apps.filter((a) => {
+        const cat = (a.category || '').toLowerCase();
+        return cat.includes('util') || cat.includes('system') || cat.includes('tool');
       });
-  }, [currentBaseList, repoFilterQuery, selectedCategory, sortBy, apkFilterMode]);
+    }
+    if (activeTab === 'favorites') {
+      return apps.filter((a) => favoriteIds.includes(a.id));
+    }
+    return apps;
+  }, [apps, activeTab, favoriteIds]);
 
-  // Display Name: dynamic clean name of the active user
-  const displayName = (userProfile.name || userProfile.login).toUpperCase();
+  // Intelligent Search & Scoring Engine
+  const filteredApps = useMemo(() => {
+    const raw = searchQuery.toLowerCase().trim();
+    const tokens = raw.split(/\s+/).filter(Boolean);
+
+    // Filter by Category
+    const categoryMatched = tabFilteredApps.filter((app) => {
+      if (selectedCategory === 'All') return true;
+      return app.category && app.category.toLowerCase().includes(selectedCategory.toLowerCase());
+    });
+
+    if (tokens.length === 0) {
+      // Apply Sort
+      return [...categoryMatched].sort((a, b) => {
+        if (sortBy === 'name') return a.name.localeCompare(b.name);
+        if (sortBy === 'patches') return (b.patches?.length || 0) - (a.patches?.length || 0);
+        if (sortBy === 'category') return (a.category || '').localeCompare(b.category || '');
+        // Recommended / Featured
+        if (a.isFeatured && !b.isFeatured) return -1;
+        if (!a.isFeatured && b.isFeatured) return 1;
+        return (b.patches?.length || 0) - (a.patches?.length || 0);
+      });
+    }
+
+    // Weighted Search Match Scoring
+    const scored = categoryMatched
+      .map((app) => {
+        let score = 0;
+        const name = app.name.toLowerCase();
+        const desc = (app.description || '').toLowerCase();
+        const pkg = (app.packageName || '').toLowerCase();
+        const author = (app.author || '').toLowerCase();
+        const cat = (app.category || '').toLowerCase();
+        const patches = (app.patches || []).join(' ').toLowerCase();
+
+        // Exact name match gets highest boost
+        if (name === raw) score += 300;
+        else if (name.startsWith(raw)) score += 180;
+        else if (name.includes(raw)) score += 100;
+
+        for (const token of tokens) {
+          if (name.includes(token)) score += 50;
+          if (pkg.includes(token)) score += 40;
+          if (patches.includes(token)) score += 35;
+          if (cat.includes(token)) score += 30;
+          if (author.includes(token)) score += 25;
+          if (desc.includes(token)) score += 15;
+        }
+
+        if (app.isFeatured) score += 10;
+        return { app, score };
+      })
+      .filter((item) => item.score > 0);
+
+    // Sort scored items: highest relevance first, or user selected sort
+    scored.sort((a, b) => {
+      if (sortBy === 'name') return a.app.name.localeCompare(b.app.name);
+      if (sortBy === 'patches') return (b.app.patches?.length || 0) - (a.app.patches?.length || 0);
+      if (sortBy === 'category') return (a.app.category || '').localeCompare(b.app.category || '');
+      // Recommended: highest search score first
+      return b.score - a.score;
+    });
+
+    return scored.map((item) => item.app);
+  }, [tabFilteredApps, searchQuery, selectedCategory, sortBy]);
+
+  // Paginated display
+  const displayedApps = useMemo(() => {
+    return filteredApps.slice(0, visibleCount);
+  }, [filteredApps, visibleCount]);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen w-full bg-cream-grid flex flex-col text-black antialiased selection:bg-[#FFE600] selection:text-black">
-      {/* Top Header: Displays user name, in-app APK update notifier, and Settings button */}
+      {/* Top Header */}
       <NeobrutalistHeader
         user={userProfile}
         onOpenMenu={() => setIsMenuOpen(true)}
-        hasUpdate={Boolean(updateInfo?.hasUpdate)}
-        onOpenUpdate={() => setIsUpdateModalOpen(true)}
+        hasUpdate={false}
         lastSynced={new Date()}
+        onSync={handleRefresh}
+        isRefreshing={isRefreshing}
       />
 
-      {/* Main Website Container */}
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-5 sm:py-7 flex flex-col">
-        {/* Top Interactive In-App APK Update Banner if update is available and not dismissed */}
-        {updateInfo?.hasUpdate && !isBannerDismissed && (
-          <div className="w-full mb-3 bg-[#FFE600] border-[2.5px] border-black rounded-2xl p-3 sm:p-3.5 shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3 animate-pop-in">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-8 h-8 rounded-xl bg-black text-[#FFE600] flex items-center justify-center flex-shrink-0 font-black animate-pulse">
-                <Sparkles className="w-4 h-4" />
-              </span>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-black text-xs sm:text-sm uppercase tracking-tight text-black truncate">
-                    APK Update Available: {updateInfo.latestVersion}
-                  </p>
-                  <span className="hidden sm:inline text-[10px] font-mono font-bold bg-black text-white px-1.5 py-0.5 rounded">
-                    NEW
-                  </span>
-                </div>
-                <p className="font-mono text-[11px] text-neutral-800 truncate">
-                  Direct release download & installer ready from GitHub
-                </p>
+      {/* Main App Store Container */}
+      <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-5 sm:py-7 flex flex-col">
+        
+
+
+
+
+        {/* Sticky Filter & Search Control Center */}
+        <div className="sticky top-0 z-30 bg-[#ECE8DE]/95 backdrop-blur-md pt-3 pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 shadow-sm">
+          {/* High-Performance Smart Search Bar styled exactly like the reference image */}
+          <div className="w-full mb-3.5">
+            <div className="w-full bg-white border-[3px] border-black rounded-full p-1.5 flex items-center shadow-[4px_4px_0px_#000]">
+              {/* Inner Input Wrapper with cream background and light gray/black border */}
+              <div className="flex-1 flex items-center bg-[#FAF6EE] border-2 border-neutral-400 rounded-full py-1.5 px-3.5 min-w-0 mr-1.5">
+                <Search className="w-4 h-4 text-neutral-400 mr-2 flex-shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setVisibleCount(36);
+                  }}
+                  placeholder="Search Android apps..."
+                  className="w-full bg-transparent font-mono text-xs sm:text-sm font-bold text-black placeholder:text-neutral-500 focus:outline-none min-w-0"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="p-1 text-neutral-400 hover:text-black cursor-pointer ml-1"
+                    title="Clear search"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-            </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Yellow Action Search Button */}
               <button
+                type="button"
                 onClick={() => {
-                  setIsUpdateModalOpen(true);
-                  handleDismissBanner();
+                  searchInputRef.current?.focus();
                 }}
-                className="py-1.5 px-3 bg-black text-white border-2 border-black rounded-xl font-black text-xs uppercase flex items-center gap-1.5 hover:bg-neutral-800 active:translate-x-[1px] active:translate-y-[1px] cursor-pointer transition-all"
+                className="bg-[#FFE600] border-2 border-black text-black rounded-full px-4 sm:px-5 py-2 sm:py-2.5 font-mono text-xs sm:text-sm font-black uppercase flex items-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-yellow-300 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer select-none whitespace-nowrap"
+                title="Search Store"
               >
-                <Download className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Get APK</span>
-              </button>
-
-              <button
-                onClick={handleDismissBanner}
-                className="p-1.5 bg-white border-2 border-black rounded-xl text-black hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] cursor-pointer transition-all"
-                title="Dismiss update banner"
-              >
-                <X className="w-4 h-4 stroke-[2.5]" />
+                <Search className="w-3.5 h-3.5 text-black stroke-[3]" />
+                <span>SEARCH</span>
               </button>
             </div>
           </div>
-        )}
 
-        {/* Search Bar with Quick Action */}
-        <div className="w-full mb-3">
-          <form
-            onSubmit={handleUserSearchSubmit}
-            className="flex items-center gap-2 bg-white border-[2.5px] border-black p-1.5 sm:p-2 rounded-2xl shadow-[3px_3px_0px_#000] hover:shadow-[4px_4px_0px_#000] transition-all"
-          >
-            <div className="relative flex-1 flex items-center">
-              <LinkIcon className="w-4 h-4 text-neutral-400 absolute left-3 pointer-events-none" />
-              <input
-                type="text"
-                value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
-                placeholder="Search GitHub username or profile link (e.g. AlexJamesHQ)..."
-                className="w-full bg-[#FAF6EE] border-2 border-black/40 focus:border-black rounded-xl py-2 pl-9 pr-3 font-mono text-xs sm:text-sm font-semibold text-black placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#FFE600] transition-all"
-              />
-            </div>
-            <button
-              type="submit"
-              className="px-3.5 sm:px-4 py-2 bg-[#FFE600] border-2 border-black rounded-xl font-black text-xs uppercase shadow-[2px_2px_0px_#000] hover:bg-yellow-300 hover:scale-[1.02] active:scale-[0.98] active:translate-x-[1px] active:translate-y-[1px] flex-shrink-0 flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Zap className="w-3.5 h-3.5 fill-black" />
-              <span>Quick</span>
-            </button>
-          </form>
-        </div>
-
-        {/* The 3 Stats in ONE BEAUTIFUL CLEAN LINE: Public (1st), Starred (2nd), Favorites/APK (3rd) */}
-        <TotalStarredCard
-          publicCount={Math.max(userProfile.public_repos || 0, publicRepos.length)}
-          starredCount={Math.max(userProfile.starred_count || 0, starredRepos.length)}
-          apkCount={totalApkCount}
-          activeTab={activeTab}
-          onSelectTab={(tab) => {
-            setActiveTab(tab);
-            setSelectedCategory('All');
-          }}
-          displayName={displayName}
-          isRefreshing={isRefreshing || isLoading}
-          onRefresh={() => handleRefresh(currentUsername)}
-        />
-
-        {/* Repository Filter Search (EMPTY by default) */}
-        <div className="w-full mb-4">
-          <div className="relative flex items-center">
-            <input
-              type="text"
-              value={repoFilterQuery}
-              onChange={(e) => handleRepoFilterChange(e.target.value)}
-              onKeyDown={handleRepoFilterKeyDown}
-              placeholder="Search by repository name, APK, or paste github.com/username..."
-              className="w-full bg-white border-[2.5px] border-black rounded-2xl py-3 pl-10 pr-10 font-mono text-sm font-semibold text-black placeholder:text-neutral-500 shadow-[3px_3px_0px_#000] focus:outline-none focus:ring-2 focus:ring-[#FFE600] transition-all"
-            />
-            <Search className="w-5 h-5 text-neutral-500 absolute left-3.5 pointer-events-none" />
-            {repoFilterQuery && (
+          {/* Popular Quick-Search Suggestions Pills */}
+          <div className="flex items-center gap-1.5 mb-3 overflow-x-auto hide-scrollbar pb-1 select-none">
+            <span className="text-[10px] font-mono font-bold text-neutral-500 uppercase flex items-center gap-1 flex-shrink-0 mr-1">
+              <TrendingUp className="w-3 h-3 text-[#FF5E00]" />
+              <span>Trending:</span>
+            </span>
+            {POPULAR_SEARCH_PILLS.map((pill) => (
               <button
-                onClick={() => setRepoFilterQuery('')}
-                className="absolute right-3 p-1 text-neutral-400 hover:text-black hover:scale-110 transition-transform cursor-pointer"
-                title="Clear filter"
+                key={pill.label}
+                type="button"
+                onClick={() => {
+                  setSearchQuery(pill.query);
+                  setVisibleCount(36);
+                }}
+                className={`px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg border border-black whitespace-nowrap transition-all cursor-pointer ${
+                  searchQuery.toLowerCase() === pill.query.toLowerCase()
+                    ? 'bg-[#FFE600] text-black shadow-[1.5px_1.5px_0px_#000]'
+                    : 'bg-white hover:bg-[#FAF6EE] text-neutral-700 shadow-[1px_1px_0px_#000]'
+                }`}
               >
-                <X className="w-4 h-4" />
+                {pill.label}
               </button>
-            )}
+            ))}
           </div>
 
-          {/* Quick Category Chips */}
-          <div className="flex items-center gap-1.5 mt-2.5 overflow-x-auto hide-scrollbar pb-1">
-            <button
-              onClick={() => setSelectedCategory('All')}
-              className={`px-3 py-1.5 text-xs font-bold uppercase rounded-xl border-2 border-black whitespace-nowrap transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
-                selectedCategory === 'All'
-                  ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000]'
-                  : 'bg-white text-neutral-700 hover:bg-neutral-100'
-              }`}
-            >
-              All ({currentBaseList.length})
-            </button>
-            {availableCategories.map((cat) => (
+          {/* Category Chips Bar with counts */}
+          <div className="flex items-center gap-1.5 mb-3 overflow-x-auto hide-scrollbar pb-1 select-none">
+            {categoriesWithCounts.map((cat) => (
               <button
                 key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-black whitespace-nowrap transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                onClick={() => {
+                  setSelectedCategory(cat);
+                  setVisibleCount(36);
+                }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-black whitespace-nowrap transition-all duration-200 cursor-pointer ${
                   selectedCategory === cat
-                    ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000]'
-                    : 'bg-white text-neutral-700 hover:bg-neutral-100'
+                    ? 'bg-[#FFE600] text-black shadow-[2px_2px_0px_#000]'
+                    : 'bg-white text-neutral-700 hover:bg-neutral-100 shadow-[1px_1px_0px_#000]'
                 }`}
               >
                 {cat}
               </button>
             ))}
           </div>
-        </div>
 
-        {/* Section Heading & Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mt-2 mb-4 select-none">
-          {/* Left: Title + Badge */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <h3 className="text-[#6B21A8] font-black text-base sm:text-xl tracking-[0.08em] uppercase leading-none truncate">
-              {activeTab === 'public'
-                ? 'PUBLIC REPOSITORIES'
-                : activeTab === 'starred'
-                ? 'STARRED REPOSITORIES'
-                : 'APK RELEASES & APPS'}
-            </h3>
-            <span className="text-xs font-mono font-black text-black bg-[#FFE600] border-2 border-black px-2.5 py-0.5 rounded-lg shadow-[2px_2px_0px_#000] flex-shrink-0">
-              {filteredRepos.length}
-            </span>
-          </div>
-
-          {/* Right Controls: Refresh + Filter Settings */}
-          <div className="flex items-center gap-2.5 flex-shrink-0 self-start sm:self-auto">
-            <button
-              onClick={() => handleRefresh(currentUsername)}
-              title="Refresh repositories and releases from GitHub"
-              className="p-1.5 sm:p-2 px-2.5 sm:px-2 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] hover:bg-neutral-100 hover:scale-105 active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <RefreshCw
-                className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`}
-              />
-              <span className="text-xs font-mono font-bold uppercase sm:hidden">Sync</span>
-            </button>
-            <button
-              onClick={() => setIsMenuOpen(true)}
-              className="px-3 py-1.5 text-xs font-bold font-mono uppercase bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] hover:bg-neutral-100 hover:scale-105 flex items-center gap-1.5 active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>Settings</span>
-            </button>
-          </div>
-        </div>
-
-        {loadError && (
-          <div className="w-full mb-4 bg-[#FFF4F4] border-[2.5px] border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000]">
-            <p className="font-black text-sm uppercase text-black mb-1">GitHub Sync Failed</p>
-            <p className="font-mono text-xs text-neutral-700 break-words">{loadError}</p>
-            <button
-              onClick={() => handleRefresh(currentUsername)}
-              className="mt-3 px-3 py-2 bg-[#FFE600] border-2 border-black rounded-xl text-xs font-black uppercase shadow-[2px_2px_0px_#000]"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {/* Repositories List with Comfortable Spacing */}
-        {isLoading ? (
-          <div className="bg-white border-[2.5px] border-black rounded-2xl p-12 text-center shadow-[4px_4px_0px_#000] my-6 animate-pop-in">
-            <RefreshCw className="w-8 h-8 animate-spin mx-auto text-black mb-3" />
-            <p className="font-mono text-sm font-bold text-neutral-800">
-              Fetching repositories and releases from GitHub for @{currentUsername}...
-            </p>
-          </div>
-        ) : filteredRepos.length === 0 ? (
-          <div className="bg-white border-[2.5px] border-black rounded-2xl p-10 text-center shadow-[4px_4px_0px_#000] my-4 animate-pop-in">
-            <p className="font-black text-lg uppercase text-black mb-1">
-              No Repositories Found
-            </p>
-            <p className="font-mono text-xs sm:text-sm text-neutral-600 mb-4">
-              {repoFilterQuery
-                ? `No repositories matched your search "${repoFilterQuery}".`
-                : `No repositories found in this section for @${currentUsername}.`}
-            </p>
-            <div className="flex justify-center gap-2">
-              {repoFilterQuery && (
+          {/* Controls Bar: Results Count + Sort Dropdown (Neobrutalist Styled) + View Toggle */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none bg-white border-2 border-black rounded-2xl p-3 shadow-[3px_3px_0px_#000]">
+            {/* Left: Section Title & Count */}
+            <div className="flex items-center gap-2">
+              <h2 className="text-[#6B21A8] font-black text-sm sm:text-base tracking-[0.08em] uppercase leading-none">
+                {searchQuery ? `SEARCH: "${searchQuery}"` : activeTab === 'all' ? 'ALL APPS' : activeTab === 'featured' ? 'FEATURED APPS' : activeTab === 'utilities' ? 'UTILITIES' : 'SAVED APPS'}
+              </h2>
+              <span className="text-xs font-mono font-black text-black bg-[#FFE600] border-2 border-black px-2 py-0.5 rounded-lg shadow-[1.5px_1.5px_0px_#000]">
+                {filteredApps.length}
+              </span>
+              {searchQuery && (
                 <button
-                  onClick={() => setRepoFilterQuery('')}
-                  className="px-3.5 py-2 bg-[#FFE600] border-2 border-black rounded-xl text-xs font-bold uppercase shadow-[2px_2px_0px_#000] hover:bg-yellow-300 hover:scale-105 transition-all cursor-pointer"
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-xs font-mono font-bold text-neutral-500 hover:text-black underline ml-1 cursor-pointer"
                 >
-                  Clear Search
+                  Clear
                 </button>
               )}
             </div>
+
+            {/* Right: Neobrutalist Styled Sort and View Mode */}
+            <div className="flex items-center gap-2">
+              {/* Sort Selector with Neobrutalist styling */}
+              <div className="flex items-center gap-1.5 bg-[#FFE600] border-2 border-black rounded-xl px-3 py-1.5 shadow-[2px_2px_0px_#000]">
+                <ArrowUpDown className="w-3.5 h-3.5 text-black stroke-[3]" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="bg-transparent font-mono text-xs font-black text-black focus:outline-none cursor-pointer uppercase"
+                >
+                  <option value="recommended">Featured / Relevant</option>
+                  <option value="name">Name (A → Z)</option>
+                  <option value="patches">Most Patches</option>
+                  <option value="category">Category</option>
+                </select>
+              </div>
+
+              {/* View Mode Toggle: Grid vs Compact List */}
+              <div className="flex items-center bg-[#FAF6EE] border-2 border-black rounded-xl p-0.5 shadow-[2px_2px_0px_#000]">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    viewMode === 'grid' ? 'bg-[#FFE600] border border-black shadow-[1px_1px_0px_#000]' : 'text-neutral-500 hover:text-black'
+                  }`}
+                  title="Grid view"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('compact')}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    viewMode === 'compact' ? 'bg-[#FFE600] border border-black shadow-[1px_1px_0px_#000]' : 'text-neutral-500 hover:text-black'
+                  }`}
+                  title="Compact list view"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Apps Render with Scroll Entrance Animations */}
+        {isLoading && apps.length === 0 ? (
+          <div className="bg-white border-[2.5px] border-black rounded-2xl p-12 text-center shadow-[4px_4px_0px_#000] my-6">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto text-black mb-3" />
+            <p className="font-mono text-sm font-bold text-neutral-800">
+              Loading 1,000+ apps from Orion-Data...
+            </p>
+          </div>
+        ) : filteredApps.length === 0 ? (
+          <div className="bg-white border-[2.5px] border-black rounded-2xl p-10 text-center shadow-[4px_4px_0px_#000] my-4">
+            <p className="font-black text-lg uppercase text-black mb-1">No Apps Found</p>
+            <p className="font-mono text-xs sm:text-sm text-neutral-600 mb-4">
+              {searchQuery
+                ? `No apps matched your search "${searchQuery}". Try a different keyword like "youtube", "music", "social", or "shizuku".`
+                : 'No apps available in this category.'}
+            </p>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="px-4 py-2 bg-[#FFE600] border-2 border-black rounded-xl text-xs font-bold uppercase shadow-[2px_2px_0px_#000] hover:bg-yellow-300 cursor-pointer"
+              >
+                Clear Search
+              </button>
+            )}
+          </div>
+        ) : viewMode === 'compact' ? (
+          /* Compact Rows View with scroll animation */
+          <div className="flex flex-col gap-2">
+            {displayedApps.map((app, index) => (
+              <motion.div
+                key={app.id}
+                initial={{ opacity: 0, y: 25 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: false, amount: 0.02 }}
+                transition={{ duration: 0.3, delay: (index % 12) * 0.015 }}
+              >
+                <OrionAppCard
+                  app={app}
+                  index={index}
+                  onSelectApp={(a) => setSelectedApp(a)}
+                  isFavorite={favoriteIds.includes(app.id)}
+                  onToggleFavorite={handleToggleFavorite}
+                  onDownloadClick={(a) => setDownloadingApp(a)}
+                  viewMode="compact"
+                />
+              </motion.div>
+            ))}
           </div>
         ) : (
-          <div className="flex flex-col gap-3.5 sm:gap-4">
-            {filteredRepos.map((repo, index) => (
-              <RepoCard
-                key={repo.id || repo.full_name}
-                repo={repo}
-                index={index}
-                onSelectRepo={(r) => setSelectedRepo(r)}
-                onOpenInAppDownload={(info) => setInAppDownloadInfo(info)}
-              />
+          /* Rich Grid Cards View with scroll animation */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+            {displayedApps.map((app, index) => (
+              <motion.div
+                key={app.id}
+                initial={{ opacity: 0, y: 35, scale: 0.96 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: false, amount: 0.02 }}
+                transition={{ duration: 0.35, delay: (index % 12) * 0.02 }}
+              >
+                <OrionAppCard
+                  app={app}
+                  index={index}
+                  onSelectApp={(a) => setSelectedApp(a)}
+                  isFavorite={favoriteIds.includes(app.id)}
+                  onToggleFavorite={handleToggleFavorite}
+                  onDownloadClick={(a) => setDownloadingApp(a)}
+                  viewMode="grid"
+                />
+              </motion.div>
             ))}
           </div>
         )}
-        
+
+        {/* Load More Button & Progress Meter */}
+        {filteredApps.length > visibleCount && (
+          <div className="flex flex-col items-center justify-center mt-8 gap-3">
+            <div className="w-full max-w-xs bg-neutral-200 border-2 border-black rounded-full h-3 overflow-hidden">
+              <div
+                className="bg-[#FFE600] h-full border-r-2 border-black transition-all duration-300"
+                style={{ width: `${Math.min(100, Math.round((displayedApps.length / filteredApps.length) * 100))}%` }}
+              />
+            </div>
+            <span className="font-mono text-xs font-bold text-neutral-600">
+              Showing {displayedApps.length} of {filteredApps.length} apps ({Math.round((displayedApps.length / filteredApps.length) * 100)}%)
+            </span>
+
+            <button
+              onClick={() => setVisibleCount((prev) => prev + 36)}
+              className="py-3 px-8 bg-white hover:bg-[#FFE600] border-[2.5px] border-black rounded-2xl font-black text-sm uppercase shadow-[3px_3px_0px_#000] hover:shadow-[4px_4px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer transition-all flex items-center gap-2"
+            >
+              <span>Load More Apps ({filteredApps.length - visibleCount} remaining)</span>
+            </button>
+          </div>
+        )}
+
         {/* Technology Stack Marquee */}
-        <div className="mt-4">
+        <div className="mt-8">
           <LogoLoop />
         </div>
 
-        {/* Interactive Flip Card - Clean Dual Image Showcase with Scroll Scale Animation */}
+        {/* Interactive Flip Card with User's Photo (clean, no overlay text) */}
         <motion.div
           initial={{ opacity: 0.85, scale: 0.92 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: false, amount: 0.2 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-12 flex justify-center w-full"
+          className="mt-12 flex justify-center w-full select-none"
         >
           <FlipCard
             front={
               <img
-                src="/front_image.jpg"
+                src="https://github.com/user-attachments/assets/39d57249-29e6-447a-8da9-3d9ad92cb796"
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = "https://github.com/user-attachments/assets/39d57249-29e6-447a-8da9-3d9ad92cb796";
+                  (e.currentTarget as HTMLImageElement).src = '/front_image.jpg';
                 }}
-                alt="Wooded landscape"
+                alt="Front Image"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             }
@@ -673,9 +656,9 @@ const App: React.FC = () => {
               <img
                 src="https://i.postimg.cc/mgF9FrTW/1776962820016-2.jpg"
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = "/back_image.jpg";
+                  (e.currentTarget as HTMLImageElement).src = '/back_image.jpg';
                 }}
-                alt="Featured Artwork"
+                alt="Profile Photo"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             }
@@ -703,7 +686,7 @@ const App: React.FC = () => {
           />
         </motion.div>
 
-        {/* TextPressure Interactive Variable Font Header */}
+        {/* TextPressure Variable Font Header */}
         <div className="w-full py-4 px-4 sm:px-6 bg-[#09090f] border-t-4 border-b-4 border-black shadow-[0_4px_0px_#000] overflow-hidden my-10">
           <TextPressure
             text="ALEX JAMES DEV"
@@ -718,8 +701,8 @@ const App: React.FC = () => {
           />
         </div>
 
-        {/* Bottom Motion Echo Developer Banner - Responsive Mobile-Optimized Neobrutalist Card */}
-        <footer className="mt-10 sm:mt-14 mb-8 sm:mb-10 w-full select-none px-1">
+        {/* Bottom Developer Banner with custom description */}
+        <footer className="mt-8 mb-8 w-full select-none px-1">
           <div className="w-full max-w-lg mx-auto p-4 sm:p-6 bg-white border-[3px] border-black rounded-2xl sm:rounded-3xl shadow-[4px_4px_0px_#000] sm:shadow-[5px_5px_0px_#000] flex flex-col items-center justify-center text-center overflow-hidden">
             {/* Top Verified Accent Tag */}
             <div className="inline-flex items-center gap-1.5 bg-[#FFE600] border border-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-black uppercase tracking-wider text-black mb-2 shadow-[1px_1px_0px_#000]">
@@ -727,7 +710,7 @@ const App: React.FC = () => {
               <span>Developer</span>
             </div>
 
-            {/* Developer Alex James Heading */}
+            {/* Developer Heading */}
             <div className="flex flex-col items-center justify-center gap-1 mb-2">
               <h2 className="font-black text-xl sm:text-2xl text-black tracking-tight uppercase leading-tight flex items-center justify-center gap-1.5">
                 <span>ALEX JAMES</span>
@@ -744,10 +727,10 @@ const App: React.FC = () => {
 
             {/* Description */}
             <p className="font-mono text-xs sm:text-[13px] text-neutral-700 leading-relaxed font-medium max-w-md mb-3 px-1">
-              Crafted with a minimalist Neobrutalist design philosophy for rapid GitHub repository discovery, starred collections, and direct Android APK package releases.
+              Empowering Android enthusiasts with lightning-fast open-source package discovery, verified modded releases, and direct APK mirrors.
             </p>
 
-            {/* Tags - Wraps beautifully on mobile */}
+            {/* Tags */}
             <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mb-4">
               <span className="text-[10px] sm:text-[11px] font-mono font-bold bg-[#FAF6EE] text-black border border-black px-2.5 py-0.5 rounded-lg shadow-[1px_1px_0px_#000]">
                 Android APKs
@@ -760,7 +743,7 @@ const App: React.FC = () => {
               </span>
             </div>
 
-            {/* Action Links: Balanced 50/50 Grid on Mobile */}
+            {/* Action Links */}
             <div className="grid grid-cols-2 gap-2.5 w-full max-w-xs sm:max-w-sm pt-3 border-t-2 border-dashed border-neutral-200">
               <a
                 href="https://github.com/AlexJamesHQ"
@@ -787,57 +770,65 @@ const App: React.FC = () => {
 
       </main>
 
-      {/* Settings Drawer - Contains Facebook, Instagram, Telegram Channel, APK Updater & GitHub */}
+      {/* Floating Back to Top Button */}
+      <AnimatePresence>
+        {showBackToTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            type="button"
+            onClick={scrollToTop}
+            className="fixed bottom-6 right-6 z-40 p-3 bg-[#FFE600] border-2 border-black rounded-2xl shadow-[3px_3px_0px_#000] text-black hover:bg-yellow-300 hover:scale-110 active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer flex items-center gap-1.5 font-mono font-black text-xs uppercase"
+            title="Scroll to top"
+          >
+            <ArrowUp className="w-4 h-4 stroke-[3]" />
+            <span className="hidden sm:inline">Top</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* App Detail Modal */}
+      <AnimatePresence>
+        {selectedApp && (
+          <OrionAppDetailModal
+            app={selectedApp}
+            onClose={() => setSelectedApp(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* In-App Download Progress Animation Modal */}
+      <AnimatePresence>
+        {downloadingApp && (
+          <InAppDownloadModal
+            app={downloadingApp}
+            onClose={() => setDownloadingApp(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Settings Drawer */}
       <MenuDrawer
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
         currentUser={userProfile}
-        onSwitchUser={handleSwitchUser}
+        onSwitchUser={() => {}}
         selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
-        availableCategories={availableCategories}
-        sortBy={sortBy}
-        onSelectSortBy={setSortBy}
-        apkFilterMode={apkFilterMode}
-        onSelectApkFilterMode={setApkFilterMode}
-        hideNonApk={apkFilterMode === 'apk_only'}
-        onToggleHideNonApk={(hide) => setApkFilterMode(hide ? 'apk_only' : 'all')}
-        onOpenTelegram={() => {}}
-        totalStarredCount={starredRepos.length}
-        hasUpdate={Boolean(updateInfo?.hasUpdate)}
-        onOpenUpdate={() => setIsUpdateModalOpen(true)}
+        onSelectCategory={(cat) => setSelectedCategory(cat)}
+        availableCategories={categoriesWithCounts}
+        sortBy="updated"
+        onSelectSortBy={() => {}}
+        totalStarredCount={apps.length}
       />
 
-      {/* In-App APK Updater Modal */}
-      <AppUpdateModal
-        isOpen={isUpdateModalOpen}
-        onClose={() => setIsUpdateModalOpen(false)}
-        updateInfo={updateInfo}
-        isChecking={isCheckingUpdate}
-        onCheckAgain={handleManualCheckUpdate}
-        currentUser={currentUsername || 'AlexJamesHQ'}
-      />
-
-      {/* Repo Details Inspect Modal */}
-      <RepoDetailsModal
-        repo={selectedRepo}
-        onClose={() => setSelectedRepo(null)}
-      />
-
-      {/* In-App Download Overview Modal */}
-      <InAppDownloadModal
-        isOpen={Boolean(inAppDownloadInfo)}
-        info={inAppDownloadInfo}
-        onClose={() => setInAppDownloadInfo(null)}
-      />
-
-      {/* Heart Rain Animation Overlay */}
+      {/* Floating Heart Rain Animation */}
       {heartParticles.length > 0 && (
-        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+        <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
           {heartParticles.map((p) => (
             <div
               key={p.id}
-              className="absolute animate-soft-heart-rain select-none"
+              className="absolute animate-heart-fall"
               style={{
                 left: `${p.x}px`,
                 top: `-50px`,

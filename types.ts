@@ -7,6 +7,30 @@ export interface ApkRelease {
   sizeBytes?: number;
 }
 
+export interface OrionAppItem {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  version: string;
+  latestVersion: string;
+  downloadUrl: string;
+  variants?: Array<{ arch: string; url: string; size?: number }>;
+  repoUrl?: string;
+  githubRepo?: string;
+  gitlabRepo?: string;
+  codebergRepo?: string;
+  releaseKeyword?: string;
+  packageName?: string;
+  category: string;
+  platform?: string;
+  size: string;
+  author: string;
+  screenshots?: string[];
+  patches?: string[];
+  isFeatured?: boolean;
+}
+
 export interface Repository {
   id: number;
   name: string;
