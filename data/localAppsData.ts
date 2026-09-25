@@ -458,5 +458,61 @@ export const localAppsData = [
       "https://image.winudf.com/v2/user/admin/YWRtaW5fU2NyZWVuc2hvdF8yMDI1MDYxMF8xMTEzNDdfTm92YSBMYXVuY2hlci5qcGdfMTc0OTUyNTQ4Mjk3Mg/screen-4.webp?fakeurl=1&type=.webp",
       "https://image.winudf.com/v2/user/admin/YWRtaW5fU2NyZWVuc2hvdF8yMDI1MDYxMF8xMTEzNDJfTm92YSBMYXVuY2hlci5qcGdfMTc0OTUyNTQ4Mjk2NA/screen-5.webp?fakeurl=1&type=.webp"
     ]
+  },
+  {
+    "id": "spotube",
+    "name": "Spotube",
+    "description": "An open-source Spotify client that utilizes the Spotify & YouTube APIs to play music without requiring a Premium account. Lightweight, completely ad-free, and extremely feature-rich with lyrics synchronisation.",
+    "icon": "https://raw.githubusercontent.com/KRTirtho/spotube/master/assets/logo.png",
+    "version": "Latest",
+    "latestVersion": "Latest",
+    "downloadUrl": "#",
+    "repoUrl": "https://github.com/KRTirtho/spotube",
+    "githubRepo": "KRTirtho/spotube",
+    "releaseKeyword": "spotube",
+    "packageName": "co.spotube.app",
+    "category": "Media",
+    "platform": "Android",
+    "size": "22 MB",
+    "author": "KRTirtho",
+    "screenshots": [
+      "https://raw.githubusercontent.com/KRTirtho/spotube/master/assets/screenshots/mobile-lyrics.png"
+    ]
+  },
+  {
+    "id": "antennapod",
+    "name": "AntennaPod",
+    "description": "The open-source podcast manager and player that gives you instant access to millions of free and paid podcasts, from independent creators to giant publishers. Free of ads and tracking.",
+    "icon": "https://antennapod.org/assets/images/logo.png",
+    "version": "Latest",
+    "latestVersion": "Latest",
+    "downloadUrl": "#",
+    "repoUrl": "https://github.com/AntennaPod/AntennaPod",
+    "githubRepo": "AntennaPod/AntennaPod",
+    "releaseKeyword": "antennapod",
+    "packageName": "de.danoeh.antennapod",
+    "category": "Media",
+    "platform": "Android",
+    "size": "14 MB",
+    "author": "AntennaPod",
+    "screenshots": []
+  },
+  {
+    "id": "brave-revanced",
+    "name": "Brave Browser",
+    "description": "Brave Browser with advanced privacy protections. Automatically blocks ads, trackers, and scripts for clean browsing with background video playback support.",
+    "icon": "https://raw.githubusercontent.com/brave/brave-browser/master/shared/resources/brand/brave-logotype-color.png",
+    "version": "Latest",
+    "latestVersion": "Latest",
+    "downloadUrl": "#",
+    "repoUrl": "https://github.com/brave/brave-browser",
+    "githubRepo": "brave/brave-browser",
+    "releaseKeyword": "brave",
+    "packageName": "com.brave.browser",
+    "category": "Utility",
+    "platform": "Android",
+    "size": "95 MB",
+    "author": "brave",
+    "screenshots": []
   }
 ]
