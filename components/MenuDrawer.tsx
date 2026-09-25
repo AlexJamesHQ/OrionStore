@@ -1,9 +1,8 @@
-import React from 'react';
-import { X, Zap, ExternalLink, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ExternalLink, Sparkles, HelpCircle, ChevronDown, ChevronUp, BookOpen, ShieldCheck, CheckCircle2, Code2, Award, Zap } from 'lucide-react';
 import { GitHubUserProfile } from '../types';
 import { GitHubIcon, TelegramIcon, FacebookIcon, InstagramIcon, StarIcon } from './Icons';
-
-export type ApkFilterMode = 'all' | 'apk_only' | 'non_apk_only';
+import { TextType } from './TextType';
 
 interface MenuDrawerProps {
   isOpen: boolean;
@@ -15,33 +14,17 @@ interface MenuDrawerProps {
   availableCategories: string[];
   sortBy: 'updated' | 'stars' | 'name';
   onSelectSortBy: (sort: 'updated' | 'stars' | 'name') => void;
-  apkFilterMode?: ApkFilterMode;
-  onSelectApkFilterMode?: (mode: ApkFilterMode) => void;
-  hideNonApk?: boolean;
-  onToggleHideNonApk?: (hide: boolean) => void;
-  onOpenTelegram: () => void;
-  totalStarredCount: number;
-  onOpenUpdate?: () => void;
-  hasUpdate?: boolean;
+  totalStarredCount?: number;
+  onReloadApps?: () => void;
 }
 
 export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   isOpen,
   onClose,
   currentUser,
-  onSwitchUser,
-  selectedCategory,
-  onSelectCategory,
-  availableCategories,
-  sortBy,
-  onSelectSortBy,
-  apkFilterMode = 'all',
-  onSelectApkFilterMode,
-  hideNonApk = false,
-  onToggleHideNonApk,
-  onOpenUpdate,
-  hasUpdate = false,
 }) => {
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
   React.useEffect(() => {
     if (isOpen) {
       document.body.classList.add('modal-open');
@@ -55,16 +38,33 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  // The profile shown here is the currently loaded GitHub account
   const developerProfile = currentUser;
 
-  const handleQuickLoad = () => {
-    onSwitchUser(currentUser.login || 'AlexJamesHQ');
-    onClose();
-  };
+  const faqs = [
+    {
+      question: 'What is OrionStore?',
+      answer: 'OrionStore is an open-source decentralized directory for discovering, syncing, and downloading Android APKs directly from official GitHub releases.'
+    },
+    {
+      question: 'How are apps updated?',
+      answer: 'Apps are continuously synced with GitHub repositories. Clicking the SYNC button in the search bar instantly fetches the latest releases, patch notes, and package builds from Official Orion Repositories.'
+    },
+    {
+      question: 'Is it safe to use?',
+      answer: 'Yes, 100%! All indexed packages are strictly open-source, compiled from public GitHub repositories, and checked for security before listing.'
+    },
+    {
+      question: 'How do I download an APK?',
+      answer: 'Click the "GET APK" button on any app card or inside the detail modal. It triggers a direct package download from official GitHub release mirrors.'
+    },
+    {
+      question: 'How do I save my favorite apps?',
+      answer: 'Tap the heart icon on any app card. Bookmarked apps are saved instantly to your local browser storage for easy one-click access.'
+    }
+  ];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex justify-end select-none">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
@@ -74,13 +74,13 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
       {/* Slide-out Drawer Container */}
       <div className="relative w-full max-w-sm sm:max-w-md bg-[#FAF6EE] h-full border-l-[3.5px] border-black shadow-[-8px_0px_0px_#000] p-5 sm:p-6 overflow-y-auto brutal-scroll z-10 flex flex-col justify-between transform transition-transform duration-300 ease-out">
         {/* Top Section */}
-        <div>
+        <div className="space-y-5">
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b-2 border-black mb-5">
+          <div className="flex items-center justify-between pb-4 border-b-2 border-black">
             <div className="flex items-center gap-2">
-              <span className="w-4 h-4 bg-[#FFE600] border-2 border-black inline-block"></span>
+              <span className="w-4 h-4 bg-[#FFE600] border-2 border-black inline-block" />
               <h3 className="font-black text-lg tracking-tight text-black uppercase">
-                Settings
+                Guide & Settings
               </h3>
             </div>
 
@@ -93,253 +93,178 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             </button>
           </div>
 
-          {/* User Account Info Card - Current GitHub account with Quick button */}
-          <div className="mb-4 bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000]">
-            <div className="flex items-center gap-3">
-              <img
-                src={developerProfile.avatar_url}
-                alt={developerProfile.login}
-                className="w-12 h-12 rounded-xl border-2 border-black object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=Alex+James&background=FFE600&color=000&bold=true`;
-                }}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-black text-base text-black tracking-tight truncate">
-                    {developerProfile.name || developerProfile.login}
+          {/* Premium Neobrutalist Developer Card */}
+          <div className="bg-white border-[2.5px] border-black rounded-2xl overflow-hidden shadow-[4px_4px_0px_#000] relative">
+            {/* Top Accent Header Bar */}
+            <div className="bg-[#FFE600] border-b-2 border-black px-4 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 font-mono text-[11px] font-black uppercase text-black">
+                <Sparkles className="w-3.5 h-3.5 fill-black" />
+                <span>Lead Developer</span>
+              </div>
+              <span className="text-[10px] font-mono font-extrabold bg-black text-[#FFE600] px-2 py-0.5 rounded-md border border-black uppercase shadow-[1px_1px_0px_#000]">
+                VERIFIED DEV
+              </span>
+            </div>
+
+            {/* Profile Content */}
+            <div className="p-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src={developerProfile.avatar_url}
+                  alt={developerProfile.login}
+                  className="w-14 h-14 rounded-2xl border-2 border-black object-cover shadow-[2px_2px_0px_#000]"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=Alex+James&background=FFE600&color=000&bold=true`;
+                  }}
+                />
+
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-black text-lg text-black tracking-tight truncate leading-tight">
+                    Alex James
                   </h4>
-                  <span className="text-[10px] font-mono font-bold bg-[#FFE600] border border-black px-1.5 py-0.5 rounded shadow-[1px_1px_0px_#000]">
-                    GITHUB
-                  </span>
-                </div>
-                <p className="font-mono text-xs font-semibold text-neutral-600 truncate">
-                  @{developerProfile.login}
-                </p>
-                <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#6B21A8] mt-1">
-                  <StarIcon className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                  <span>{developerProfile.starred_count || 0} Starred Repositories</span>
+                  <p className="font-mono text-xs font-bold text-neutral-600 truncate mt-0.5">
+                    @AlexJamesHQ
+                  </p>
+                  <p className="font-mono text-[11px] font-extrabold text-[#6B21A8] flex items-center gap-1 mt-1">
+                    <Award className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Lead Developer & Architect</span>
+                  </p>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Dedicated Quick Button to load Alex James's profile */}
-            <div className="pt-3 mt-3 border-t-2 border-black/10">
-              <button
-                type="button"
-                onClick={handleQuickLoad}
-                className="w-full py-2.5 px-4 bg-[#FFE600] border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-[2px_2px_0px_#000] hover:bg-yellow-300 hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
-              >
-                <Zap className="w-4 h-4 fill-black" />
-                <span>Quick</span>
-              </button>
+          {/* User Guide: How to Use OrionStore */}
+          <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000]">
+            <div className="flex items-center gap-2 mb-2.5">
+              <BookOpen className="w-4 h-4 text-[#FF5E00]" />
+              <h4 className="font-black text-xs uppercase tracking-wider text-black">
+                How to Use OrionStore
+              </h4>
+            </div>
+            <ul className="space-y-2 font-mono text-xs text-neutral-800 leading-relaxed">
+              <li className="flex items-start gap-1.5">
+                <span className="font-black text-[#6B21A8]">1.</span>
+                <span><strong>Search & Filter:</strong> Use the search bar or category chips to find modded apps and utilities.</span>
+              </li>
+              <li className="flex items-start gap-1.5">
+                <span className="font-black text-[#6B21A8]">2.</span>
+                <span><strong>Download APK:</strong> Click <strong>GET APK</strong> to trigger instant downloads directly from official GitHub releases.</span>
+              </li>
+              <li className="flex items-start gap-1.5">
+                <span className="font-black text-[#6B21A8]">3.</span>
+                <span><strong>Live Sync:</strong> Tap the <strong>SYNC</strong> button inside the search bar to fetch fresh app releases in real time.</span>
+              </li>
+              <li className="flex items-start gap-1.5">
+                <span className="font-black text-[#6B21A8]">4.</span>
+                <span><strong>Bookmark:</strong> Click the heart icon to save favorite apps locally for quick access.</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Frequently Asked Questions (FAQs) */}
+          <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000]">
+            <div className="flex items-center gap-2 mb-3">
+              <HelpCircle className="w-4 h-4 text-emerald-600" />
+              <h4 className="font-black text-xs uppercase tracking-wider text-black">
+                Frequently Asked Questions (FAQs)
+              </h4>
+            </div>
+
+            <div className="space-y-2">
+              {faqs.map((faq, index) => {
+                const isOpen = openFaqIndex === index;
+                return (
+                  <div
+                    key={index}
+                    className="border-2 border-black rounded-xl overflow-hidden bg-[#FAF6EE]"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                      className="w-full p-2.5 text-left font-mono text-xs font-bold text-black flex items-center justify-between gap-2 hover:bg-neutral-100 cursor-pointer"
+                    >
+                      <span>{faq.question}</span>
+                      {isOpen ? (
+                        <ChevronUp className="w-3.5 h-3.5 flex-shrink-0" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
+                      )}
+                    </button>
+                    {isOpen && (
+                      <div className="p-2.5 pt-0 font-mono text-[11px] text-neutral-700 border-t border-black/20 bg-white leading-relaxed">
+                        {faq.answer}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* In-App APK Updates Option */}
-          {onOpenUpdate && (
-            <div className="mb-6 bg-white border-2 border-black rounded-2xl p-3.5 shadow-[3px_3px_0px_#000]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-black tracking-wider text-[#6B21A8] uppercase flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>App & APK Updater</span>
-                </span>
-                {hasUpdate && (
-                  <span className="text-[10px] font-mono font-black bg-red-500 text-white px-1.5 py-0.5 rounded">
-                    NEW UPDATE
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  onClose();
-                  onOpenUpdate();
-                }}
-                className={`w-full py-2 px-3 border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer ${
-                  hasUpdate
-                    ? 'bg-[#FFE600] hover:bg-yellow-300 animate-pulse'
-                    : 'bg-[#FAF6EE] hover:bg-neutral-100'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{hasUpdate ? 'Update APK Now' : 'Check for Updates'}</span>
-              </button>
-            </div>
-          )}
-
-          {/* Sort By Section */}
-          <div className="mb-6 bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000]">
-            <label className="block text-xs font-black tracking-wider text-[#6B21A8] uppercase mb-2">
-              Sort Repositories:
+          {/* Developer Social Profiles */}
+          <div className="space-y-2 pt-1">
+            <label className="block text-[11px] font-black tracking-wider text-neutral-700 uppercase mb-1">
+              Developer Social Profiles:
             </label>
-            <div className="grid grid-cols-3 gap-1.5 mb-4">
-              {[
-                { id: 'updated', label: 'Updated' },
-                { id: 'stars', label: 'Stars' },
-                { id: 'name', label: 'A to Z' },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => onSelectSortBy(item.id as any)}
-                  className={`p-2 text-center rounded-xl border-2 border-black font-black text-xs uppercase transition-all cursor-pointer ${
-                    sortBy === item.id
-                      ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] border-black scale-[1.02]'
-                      : 'bg-[#FAF6EE] hover:bg-neutral-100'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
 
-            {/* APK Filter Mode Control */}
-            <div className="mt-4 pt-3 border-t-2 border-dashed border-black/30">
-              <label className="block text-[11px] font-black tracking-wider text-black uppercase mb-2">
-                APK Repos Filter:
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onSelectApkFilterMode) onSelectApkFilterMode('all');
-                    if (onToggleHideNonApk) onToggleHideNonApk(false);
-                  }}
-                  className={`p-2 rounded-xl border-2 border-black font-black text-[10px] uppercase text-center transition-all cursor-pointer ${
-                    apkFilterMode === 'all'
-                      ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] border-black scale-[1.02]'
-                      : 'bg-[#FAF6EE] hover:bg-neutral-100'
-                  }`}
-                >
-                  All (APK First)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onSelectApkFilterMode) onSelectApkFilterMode('apk_only');
-                    if (onToggleHideNonApk) onToggleHideNonApk(true);
-                  }}
-                  className={`p-2 rounded-xl border-2 border-black font-black text-[10px] uppercase text-center transition-all cursor-pointer ${
-                    apkFilterMode === 'apk_only'
-                      ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] border-black scale-[1.02]'
-                      : 'bg-[#FAF6EE] hover:bg-neutral-100'
-                  }`}
-                >
-                  APK Only
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onSelectApkFilterMode) onSelectApkFilterMode('non_apk_only');
-                    if (onToggleHideNonApk) onToggleHideNonApk(false);
-                  }}
-                  className={`p-2 rounded-xl border-2 border-black font-black text-[10px] uppercase text-center transition-all cursor-pointer ${
-                    apkFilterMode === 'non_apk_only'
-                      ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000] border-black scale-[1.02]'
-                      : 'bg-[#FAF6EE] hover:bg-neutral-100'
-                  }`}
-                >
-                  Without APK
-                </button>
+            <a
+              href="https://t.me/ALEX_JAMES_DEV"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full p-2.5 bg-[#FFE600] text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-between shadow-[2px_2px_0px_#000] hover:bg-yellow-300 hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <TelegramIcon className="w-4 h-4 text-black" />
+                <span>Telegram Channel</span>
               </div>
-              <p className="font-mono text-[10px] text-neutral-600 mt-1.5">
-                {apkFilterMode === 'all' && '★ All repos shown, with APK apps sorted first.'}
-                {apkFilterMode === 'apk_only' && '★ Showing only repos with APK downloads.'}
-                {apkFilterMode === 'non_apk_only' && '★ Showing only repos without APK.'}
-              </p>
-            </div>
-          </div>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
 
-          {/* Filter by Semantic Category */}
-          <div className="mb-6 bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000]">
-            <label className="block text-xs font-black tracking-wider text-[#6B21A8] uppercase mb-2">
-              Filter by Category:
-            </label>
-            <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto brutal-scroll p-1">
-              <button
-                onClick={() => onSelectCategory('All')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg border-2 border-black transition-all cursor-pointer ${
-                  selectedCategory === 'All'
-                    ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000]'
-                    : 'bg-[#FAF6EE] hover:bg-neutral-100'
-                }`}
+            <div className="grid grid-cols-2 gap-2">
+              <a
+                href="https://www.facebook.com/share/1J6T4MuGbJ/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-[#FAF6EE] hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
               >
-                All Categories
-              </button>
-              {availableCategories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => onSelectCategory(cat)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border-2 border-black transition-all cursor-pointer ${
-                    selectedCategory === cat
-                      ? 'bg-[#FFE600] shadow-[2px_2px_0px_#000]'
-                      : 'bg-[#FAF6EE] hover:bg-neutral-100'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+                <FacebookIcon className="w-4 h-4 text-black" />
+                <span>Facebook</span>
+                <ExternalLink className="w-3 h-3 text-neutral-500" />
+              </a>
+
+              <a
+                href="https://www.instagram.com/alex.james.dev"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-[#FAF6EE] hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
+              >
+                <InstagramIcon className="w-4 h-4 text-black" />
+                <span>Instagram</span>
+                <ExternalLink className="w-3 h-3 text-neutral-500" />
+              </a>
             </div>
+
+            <a
+              href="https://github.com/AlexJamesHQ"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-[2px_2px_0px_#000] hover:bg-neutral-50 hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
+            >
+              <GitHubIcon className="w-4 h-4" />
+              <span>GitHub Profile</span>
+              <ExternalLink className="w-3.5 h-3.5 text-neutral-500" />
+            </a>
           </div>
         </div>
 
-        {/* Bottom Social Media Hub: matching website colors (Yellow, White, Black Neobrutalism) */}
-        <div className="pt-4 border-t-2 border-black space-y-2">
-          <label className="block text-[11px] font-black tracking-wider text-neutral-700 uppercase mb-1">
-            Developer Social Profiles:
-          </label>
-
-          {/* Telegram Channel Button - Neobrutalist Theme Matching */}
-          <a
-            href="https://t.me/ALEX_JAMES_DEV"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full p-2.5 bg-[#FFE600] text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-between shadow-[2px_2px_0px_#000] hover:bg-yellow-300 hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <TelegramIcon className="w-4 h-4 text-black" />
-              <span>Telegram Channel</span>
-            </div>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-
-          {/* Facebook & Instagram Buttons - Neobrutalist Theme Matching */}
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href="https://www.facebook.com/share/1J6T4MuGbJ/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-[#FAF6EE] hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
-            >
-              <FacebookIcon className="w-4 h-4 text-black" />
-              <span>Facebook</span>
-              <ExternalLink className="w-3 h-3 text-neutral-500" />
-            </a>
-
-            <a
-              href="https://www.instagram.com/alex.james.dev?stkn=dDg5cG5nZTB6aDBx"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-[#FAF6EE] hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
-            >
-              <InstagramIcon className="w-4 h-4 text-black" />
-              <span>Instagram</span>
-              <ExternalLink className="w-3 h-3 text-neutral-500" />
-            </a>
-          </div>
-
-          {/* GitHub Profile Button */}
-          <a
-            href={developerProfile.html_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-[2px_2px_0px_#000] hover:bg-neutral-50 hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
-          >
-            <GitHubIcon className="w-4 h-4" />
-            <span>GitHub Profile</span>
-            <ExternalLink className="w-3 h-3 text-neutral-500" />
-          </a>
+        {/* Bottom Store Info with Developer Attribution */}
+        <div className="pt-4 border-t-2 border-black text-center font-mono text-[11px] text-neutral-700 font-black">
+          OrionStore • Developed by Alex James
         </div>
       </div>
     </div>
   );
 };
+
+export default MenuDrawer;

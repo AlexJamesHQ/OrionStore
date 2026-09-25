@@ -1,6 +1,6 @@
 import React from 'react';
 import { GitHubUserProfile } from '../types';
-import { Settings as SettingsIcon, Sparkles, Clock } from 'lucide-react';
+import { Settings as SettingsIcon, Sparkles, Clock, RefreshCw } from 'lucide-react';
 import { GitHubIcon } from './Icons';
 
 interface NeobrutalistHeaderProps {
@@ -9,6 +9,8 @@ interface NeobrutalistHeaderProps {
   hasUpdate?: boolean;
   onOpenUpdate?: () => void;
   lastSynced?: Date;
+  onSync?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const NeobrutalistHeader: React.FC<NeobrutalistHeaderProps> = ({
@@ -17,6 +19,8 @@ export const NeobrutalistHeader: React.FC<NeobrutalistHeaderProps> = ({
   hasUpdate = false,
   onOpenUpdate,
   lastSynced,
+  onSync,
+  isRefreshing = false,
 }) => {
   const displayName = (user.name || user.login).toUpperCase();
 
@@ -98,6 +102,19 @@ export const NeobrutalistHeader: React.FC<NeobrutalistHeaderProps> = ({
           >
             <GitHubIcon className="w-4 h-4 sm:w-5 sm:h-5" />
           </a>
+
+          {/* Sync Button */}
+          {onSync && (
+            <button
+              onClick={onSync}
+              disabled={isRefreshing}
+              title="Sync Orion Database"
+              className="h-8 sm:h-10 px-2 sm:px-3 bg-white rounded-lg sm:rounded-xl border-2 sm:border-[2.5px] border-black shadow-[2px_2px_0px_#000] hover:bg-yellow-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none font-black text-xs uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-black ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden md:inline">Sync</span>
+            </button>
+          )}
 
           {/* Settings Button */}
           <button
