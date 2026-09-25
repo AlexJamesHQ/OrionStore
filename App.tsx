@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { OrionAppItem, GitHubUserProfile } from './types';
 import { localAppsData } from './data/localAppsData';
 import { fetchOrionApps } from './services/orionAppsService';
+import { playRetroSound } from './services/sfxService';
 import { DEFAULT_USER_PROFILE } from './data/sampleRepos';
 import {
   NeobrutalistHeader,
@@ -13,10 +14,13 @@ import {
   OrionAppCard,
   OrionAppDetailModal,
   InAppDownloadModal,
+  RequestAppModal,
   GitHubIcon,
 } from './components';
 import {
   Search,
+  Mail,
+  BarChart3,
   RefreshCw,
   X,
   ArrowUpRight,
@@ -103,6 +107,36 @@ export const App: React.FC = () => {
     }
   });
 
+  const [accentColor, setAccentColor] = useState<string>(() => {
+    try {
+      return localStorage.getItem('orion_accent_color') || '#F9D949';
+    } catch {
+      return '#F9D949';
+    }
+  });
+
+  const handleAccentColorChange = (color: string) => {
+    setAccentColor(color);
+    try {
+      localStorage.setItem('orion_accent_color', color);
+    } catch {}
+  };
+
+  const [gridStyle, setGridStyle] = useState<'static' | 'drift' | 'warp' | 'dots' | 'dots-drift'>(() => {
+    try {
+      return (localStorage.getItem('orion_grid_style') as any) || 'static';
+    } catch {
+      return 'static';
+    }
+  });
+
+  const handleGridStyleChange = (style: string) => {
+    setGridStyle(style as any);
+    try {
+      localStorage.setItem('orion_grid_style', style);
+    } catch {}
+  };
+
   const [viewMode, setViewMode] = useState<'grid' | 'compact'>(() => {
     try {
       return (localStorage.getItem('orion_view_mode') as 'grid' | 'compact') || 'grid';
@@ -112,6 +146,8 @@ export const App: React.FC = () => {
   });
 
   const [visibleCount, setVisibleCount] = useState<number>(36);
+  const [showStats, setShowStats] = useState(false);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
   // Sync states to localStorage
   useEffect(() => {
@@ -202,11 +238,12 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Load all 1,081+ Orion Apps on mount
+  // Load all 1,081+ Orion Apps on mount with seamless Background Auto-Sync!
   useEffect(() => {
     const loadApps = async () => {
       setIsLoading(true);
       try {
+        // Step 1: Instantly load cached apps (or fallback to local if empty) for zero-latency startup
         const loaded = await fetchOrionApps();
         if (loaded && loaded.length > 0) {
           setApps(loaded);
@@ -216,11 +253,80 @@ export const App: React.FC = () => {
       } finally {
         setIsLoading(false);
       }
+
+      // Step 2: Auto-sync in the background from public GitHub API to get latest updates silently!
+      try {
+        const remoteRes = await fetch('https://raw.githubusercontent.com/RookieEnough/Orion-Data/main/apps.json');
+        if (remoteRes.ok) {
+          const remoteApps = await remoteRes.json();
+          if (Array.isArray(remoteApps) && remoteApps.length > 0) {
+            const PRIORITY_PACKAGE_NAMES = [
+              'moe.rukamori.archivetune',
+              'com.ivor.ivormusic',
+              'dev.citali.lunartune',
+              'com.musheer360.swiftslate',
+              'com.asrumon.telephoto',
+              'com.etrisad.zenith',
+              'com.theveloper.pixelplay',
+              'com.vivi.vivimusic',
+              'ru.tech.imageresizershrinker',
+              'org.localsend.localsend_app',
+              'com.junkfood.seal',
+              'com.dot.gallery',
+              'me.rerere.rikkahub',
+              'com.msob7y.namida',
+              'org.nqmgaming.aneko',
+              'cn.nubia.redmagickyi',
+              'com.streak.app',
+              'com.serranoie.app.minus',
+              'com.lastwave.app',
+              'com.rubex.nfile',
+              'com.roxum',
+              'com.foxdebug.acode',
+              'com.eyalm.adns',
+              'com.pranshulgg.weather_master_app'
+            ];
+            
+            const prioritizedMap = new Map<string, any>();
+            const priorityList: any[] = [];
+            const otherList: any[] = [];
+
+            PRIORITY_PACKAGE_NAMES.forEach((pkg) => {
+              const found = remoteApps.find(
+                (a) => a.packageName && a.packageName.toLowerCase() === pkg.toLowerCase()
+              );
+              if (found && !prioritizedMap.has(found.id)) {
+                prioritizedMap.set(found.id, { ...found, isFeatured: true });
+                priorityList.push({ ...found, isFeatured: true });
+              }
+            });
+
+            remoteApps.forEach((app) => {
+              if (!prioritizedMap.has(app.id)) {
+                otherList.push(app);
+                prioritizedMap.set(app.id, app);
+              }
+            });
+
+            const finalApps = [...priorityList, ...otherList];
+            
+            // Check if different to avoid redundant re-renders
+            const cachedStr = localStorage.getItem('orion_apps_data_v3');
+            if (JSON.stringify(finalApps) !== cachedStr) {
+              setApps(finalApps);
+              localStorage.setItem('orion_apps_data_v3', JSON.stringify(finalApps));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Background auto-sync failed:', err);
+      }
     };
     loadApps();
   }, []);
 
   const handleRefresh = async () => {
+    playRetroSound('click');
     setIsRefreshing(true);
     try {
       localStorage.removeItem('orion_apps_data_v3');
@@ -236,6 +342,7 @@ export const App: React.FC = () => {
   };
 
   const handleToggleFavorite = (appId: string) => {
+    playRetroSound('toggle');
     setFavoriteIds((prev) => {
       const updated = prev.includes(appId)
         ? prev.filter((id) => id !== appId)
@@ -349,6 +456,34 @@ export const App: React.FC = () => {
     return scored.map((item) => item.app);
   }, [tabFilteredApps, searchQuery, selectedCategory, sortBy]);
 
+  const statsSummary = useMemo(() => {
+    const total = apps.length;
+    let utilities = 0;
+    let media = 0;
+    let social = 0;
+    let other = 0;
+    let totalPatches = 0;
+    let featured = 0;
+
+    apps.forEach((app) => {
+      if (app.isFeatured) featured++;
+      if (app.patches) totalPatches += app.patches.length;
+
+      const cat = (app.category || '').toLowerCase();
+      if (cat.includes('utility') || cat.includes('tool')) {
+        utilities++;
+      } else if (cat.includes('media') || cat.includes('music') || cat.includes('video')) {
+        media++;
+      } else if (cat.includes('social')) {
+        social++;
+      } else {
+        other++;
+      }
+    });
+
+    return { total, utilities, media, social, other, totalPatches, featured };
+  }, [apps]);
+
   // Paginated display
   const displayedApps = useMemo(() => {
     return filteredApps.slice(0, visibleCount);
@@ -358,12 +493,67 @@ export const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const gridBackgroundClass = useMemo(() => {
+    if (gridStyle === 'drift') return 'bg-cream-grid bg-grid-drift';
+    if (gridStyle === 'warp') return 'bg-cream-grid bg-grid-warp';
+    if (gridStyle === 'dots') return 'bg-retro-dots';
+    if (gridStyle === 'dots-drift') return 'bg-retro-dots bg-dots-drift';
+    return 'bg-cream-grid';
+  }, [gridStyle]);
+
   return (
-    <div className="min-h-screen w-full bg-cream-grid flex flex-col text-black antialiased selection:bg-[#FFE600] selection:text-black">
+    <div className={`min-h-screen w-full ${gridBackgroundClass} flex flex-col text-black antialiased selection:bg-[#FFE600] selection:text-black`}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        :root {
+          --accent-color: ${accentColor} !important;
+        }
+        /* Override background color of FFE600 */
+        .bg-\\[\\#FFE600\\], 
+        .bg-yellow-300,
+        [class*="bg-[#FFE600]"],
+        [class*="bg-[#FFE600]"]:hover {
+          background-color: ${accentColor} !important;
+        }
+        /* Override border color */
+        .border-\\[\\#FFE600\\],
+        [class*="border-[#FFE600]"] {
+          border-color: ${accentColor} !important;
+        }
+        /* Override text color */
+        .text-\\[\\#FFE600\\],
+        [class*="text-[#FFE600]"] {
+          color: ${accentColor} !important;
+        }
+        /* Override SVG fill */
+        .fill-\\[\\#FFE600\\],
+        [class*="fill-[#FFE600]"] {
+          fill: ${accentColor} !important;
+        }
+        /* Override selection highlight */
+        ::selection {
+          background-color: ${accentColor} !important;
+          color: #000000 !important;
+        }
+        ::-moz-selection {
+          background-color: ${accentColor} !important;
+          color: #000000 !important;
+        }
+        /* Custom hide scrollbar rule */
+        .no-scrollbar::-webkit-scrollbar {
+          display: none !important;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
+        }
+      `}} />
       {/* Top Header */}
       <NeobrutalistHeader
         user={userProfile}
-        onOpenMenu={() => setIsMenuOpen(true)}
+        onOpenMenu={() => {
+          playRetroSound('click');
+          setIsMenuOpen(true);
+        }}
         hasUpdate={false}
         lastSynced={new Date()}
         onSync={handleRefresh}
@@ -378,9 +568,9 @@ export const App: React.FC = () => {
 
 
         {/* Sticky Filter & Search Control Center */}
-        <div className="sticky top-0 z-30 bg-[#ECE8DE]/95 backdrop-blur-md pt-3 pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 shadow-sm">
+        <div className="sticky top-0 z-30 bg-[#ECE8DE]/95 backdrop-blur-md pt-3.5 pb-3 -mx-4 px-4 sm:-mx-6 sm:px-6 shadow-sm">
           {/* High-Performance Smart Search Bar styled exactly like the reference image */}
-          <div className="w-full mb-3.5">
+          <div className="w-full mb-5">
             <div className="w-full bg-white border-[3px] border-black rounded-full p-1.5 flex items-center shadow-[4px_4px_0px_#000]">
               {/* Inner Input Wrapper with cream background and light gray/black border */}
               <div className="flex-1 flex items-center bg-[#FAF6EE] border-2 border-neutral-400 rounded-full py-1.5 px-3.5 min-w-0 mr-1.5">
@@ -412,6 +602,7 @@ export const App: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
+                  playRetroSound('click');
                   searchInputRef.current?.focus();
                 }}
                 className="bg-[#FFE600] border-2 border-black text-black rounded-full px-4 sm:px-5 py-2 sm:py-2.5 font-mono text-xs sm:text-sm font-black uppercase flex items-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-yellow-300 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer select-none whitespace-nowrap"
@@ -423,44 +614,20 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Popular Quick-Search Suggestions Pills */}
-          <div className="flex items-center gap-1.5 mb-3 overflow-x-auto hide-scrollbar pb-1 select-none">
-            <span className="text-[10px] font-mono font-bold text-neutral-500 uppercase flex items-center gap-1 flex-shrink-0 mr-1">
-              <TrendingUp className="w-3 h-3 text-[#FF5E00]" />
-              <span>Trending:</span>
-            </span>
-            {POPULAR_SEARCH_PILLS.map((pill) => (
-              <button
-                key={pill.label}
-                type="button"
-                onClick={() => {
-                  setSearchQuery(pill.query);
-                  setVisibleCount(36);
-                }}
-                className={`px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg border border-black whitespace-nowrap transition-all cursor-pointer ${
-                  searchQuery.toLowerCase() === pill.query.toLowerCase()
-                    ? 'bg-[#FFE600] text-black shadow-[1.5px_1.5px_0px_#000]'
-                    : 'bg-white hover:bg-[#FAF6EE] text-neutral-700 shadow-[1px_1px_0px_#000]'
-                }`}
-              >
-                {pill.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Category Chips Bar with counts */}
-          <div className="flex items-center gap-1.5 mb-3 overflow-x-auto hide-scrollbar pb-1 select-none">
+          {/* Category Chips Bar with safe margin padding and native momentum swipe */}
+          <div className="-mx-4 px-4 sm:-mx-6 sm:px-6 overflow-x-auto no-scrollbar flex items-center gap-1.5 pt-1.5 pb-3 mb-4 select-none scroll-smooth">
             {categoriesWithCounts.map((cat) => (
               <button
                 key={cat}
                 onClick={() => {
+                  playRetroSound('click');
                   setSelectedCategory(cat);
                   setVisibleCount(36);
                 }}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-black whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                className={`px-3.5 py-1.5 text-xs font-black rounded-xl border-2 border-black whitespace-nowrap transition-all duration-200 cursor-pointer ${
                   selectedCategory === cat
                     ? 'bg-[#FFE600] text-black shadow-[2px_2px_0px_#000]'
-                    : 'bg-white text-neutral-700 hover:bg-neutral-100 shadow-[1px_1px_0px_#000]'
+                    : 'bg-white text-neutral-700 hover:bg-neutral-100 shadow-[1.5px_1.5px_0px_#000]'
                 }`}
               >
                 {cat}
@@ -468,21 +635,53 @@ export const App: React.FC = () => {
             ))}
           </div>
 
-          {/* Controls Bar: Results Count + Sort Dropdown (Neobrutalist Styled) + View Toggle */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none bg-white border-2 border-black rounded-2xl p-3 shadow-[3px_3px_0px_#000]">
-            {/* Left: Section Title & Count */}
-            <div className="flex items-center gap-2">
-              <h2 className="text-[#6B21A8] font-black text-sm sm:text-base tracking-[0.08em] uppercase leading-none">
-                {searchQuery ? `SEARCH: "${searchQuery}"` : activeTab === 'all' ? 'ALL APPS' : activeTab === 'featured' ? 'FEATURED APPS' : activeTab === 'utilities' ? 'UTILITIES' : 'SAVED APPS'}
+          {/* Compact Mobile-Friendly Controls Bar */}
+          <div className="flex items-center justify-between gap-2.5 select-none bg-white border-2 border-black rounded-xl p-2.5 sm:p-3 shadow-[2.5px_2.5px_0px_#000] mb-1">
+            {/* Left: Section Title, Count & Insights Toggler */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h2 className="text-[#6B21A8] font-black text-xs sm:text-sm tracking-wide uppercase leading-none truncate">
+                {searchQuery ? `SEARCH` : activeTab === 'all' ? 'ALL' : activeTab === 'featured' ? 'FEATURED' : activeTab === 'utilities' ? 'UTILITIES' : 'SAVED'}
               </h2>
-              <span className="text-xs font-mono font-black text-black bg-[#FFE600] border-2 border-black px-2 py-0.5 rounded-lg shadow-[1.5px_1.5px_0px_#000]">
+              <span className="text-[10px] sm:text-xs font-mono font-black text-black bg-[#FFE600] border border-black px-1.5 py-0.5 rounded-lg shadow-[1px_1px_0px_#000] flex-shrink-0">
                 {filteredApps.length}
               </span>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  playRetroSound('click');
+                  setShowStats(!showStats);
+                }}
+                className={`px-2 py-1 border-2 border-black rounded-lg text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-tight shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none transition-all cursor-pointer flex items-center gap-1 flex-shrink-0 ml-1 ${
+                  showStats
+                    ? 'bg-black text-[#FFE600]'
+                    : 'bg-[#FAF6EE] text-black hover:bg-neutral-100'
+                }`}
+                style={showStats ? { color: accentColor } : undefined}
+                title="Toggle Live App Catalog Stats"
+              >
+                <BarChart3 className="w-3 h-3 stroke-[2.5]" />
+                <span className="hidden xs:inline">STATS</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playRetroSound('click');
+                  setIsRequestModalOpen(true);
+                }}
+                className="px-2 py-1 border-2 border-black rounded-lg text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-tight shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none transition-all cursor-pointer flex items-center gap-1 flex-shrink-0 ml-1 bg-white hover:bg-neutral-100 text-black select-none"
+                title="Request a new Modded App"
+              >
+                <Mail className="w-3 h-3 stroke-[2.5]" />
+                <span>REQUEST APP</span>
+              </button>
+
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="text-xs font-mono font-bold text-neutral-500 hover:text-black underline ml-1 cursor-pointer"
+                  className="text-[10px] font-mono font-bold text-neutral-500 hover:text-black underline ml-1 cursor-pointer flex-shrink-0"
                 >
                   Clear
                 </button>
@@ -496,7 +695,10 @@ export const App: React.FC = () => {
                 <ArrowUpDown className="w-3.5 h-3.5 text-black stroke-[3]" />
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  onChange={(e) => {
+                    playRetroSound('click');
+                    setSortBy(e.target.value as SortOption);
+                  }}
                   className="bg-transparent font-mono text-xs font-black text-black focus:outline-none cursor-pointer uppercase"
                 >
                   <option value="recommended">Featured / Relevant</option>
@@ -510,7 +712,10 @@ export const App: React.FC = () => {
               <div className="flex items-center bg-[#FAF6EE] border-2 border-black rounded-xl p-0.5 shadow-[2px_2px_0px_#000]">
                 <button
                   type="button"
-                  onClick={() => setViewMode('grid')}
+                  onClick={() => {
+                    playRetroSound('click');
+                    setViewMode('grid');
+                  }}
                   className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                     viewMode === 'grid' ? 'bg-[#FFE600] border border-black shadow-[1px_1px_0px_#000]' : 'text-neutral-500 hover:text-black'
                   }`}
@@ -520,7 +725,10 @@ export const App: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setViewMode('compact')}
+                  onClick={() => {
+                    playRetroSound('click');
+                    setViewMode('compact');
+                  }}
                   className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                     viewMode === 'compact' ? 'bg-[#FFE600] border border-black shadow-[1px_1px_0px_#000]' : 'text-neutral-500 hover:text-black'
                   }`}
@@ -532,6 +740,102 @@ export const App: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Live Catalog Insights Collapsible Dashboard */}
+        <AnimatePresence>
+          {showStats && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, y: -10 }}
+              animate={{ opacity: 1, height: 'auto', y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="overflow-hidden mb-5 w-full select-none"
+            >
+              <div className="bg-white border-2 border-black rounded-2xl p-4 sm:p-5 shadow-[4px_4px_0px_#000] flex flex-col gap-4">
+                {/* Header Stats Title */}
+                <div className="flex items-center justify-between pb-2 border-b-2 border-dashed border-neutral-200">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-[#FF5E00]" />
+                    <h3 className="font-black text-xs sm:text-sm uppercase tracking-wider text-black">
+                      Live Orion Catalog Insights
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-mono font-black text-black bg-[#FFE600] border border-black px-2 py-0.5 rounded-full shadow-[1px_1px_0px_#000]">
+                    TOTAL INDEXED: {statsSummary.total} APPS
+                  </span>
+                </div>
+
+                {/* Grid Grid Stats Metrics */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-[#FAF6EE] border-2 border-black rounded-xl p-2.5 shadow-[1.5px_1.5px_0px_#000] text-center">
+                    <p className="text-[9px] font-mono font-bold text-neutral-500 uppercase">Utilities</p>
+                    <p className="font-black text-lg text-black mt-0.5">{statsSummary.utilities}</p>
+                  </div>
+                  <div className="bg-[#FAF6EE] border-2 border-black rounded-xl p-2.5 shadow-[1.5px_1.5px_0px_#000] text-center">
+                    <p className="text-[9px] font-mono font-bold text-neutral-500 uppercase">Media & Music</p>
+                    <p className="font-black text-lg text-black mt-0.5">{statsSummary.media}</p>
+                  </div>
+                  <div className="bg-[#FAF6EE] border-2 border-black rounded-xl p-2.5 shadow-[1.5px_1.5px_0px_#000] text-center">
+                    <p className="text-[9px] font-mono font-bold text-neutral-500 uppercase">Social & Chats</p>
+                    <p className="font-black text-lg text-black mt-0.5">{statsSummary.social}</p>
+                  </div>
+                  <div className="bg-[#FAF6EE] border-2 border-black rounded-xl p-2.5 shadow-[1.5px_1.5px_0px_#000] text-center">
+                    <p className="text-[9px] font-mono font-bold text-neutral-500 uppercase">Total Mod Patches</p>
+                    <p className="font-black text-lg text-[#6B21A8] mt-0.5">+{statsSummary.totalPatches}</p>
+                  </div>
+                </div>
+
+                {/* Progress bars showing distribution percentage */}
+                <div className="space-y-2.5 pt-1">
+                  <h4 className="font-mono text-[10px] font-black text-neutral-600 uppercase tracking-wider">
+                    Category Distribution Percentage:
+                  </h4>
+                  {/* Utilities */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between font-mono text-[10px] font-black">
+                      <span className="text-black">UTILITY MODS</span>
+                      <span className="text-neutral-500">{statsSummary.total > 0 ? Math.round((statsSummary.utilities / statsSummary.total) * 100) : 0}%</span>
+                    </div>
+                    <div className="w-full bg-neutral-100 border border-black rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className="bg-[#FFE600] h-full rounded-full transition-all duration-500"
+                        style={{ width: `${statsSummary.total > 0 ? (statsSummary.utilities / statsSummary.total) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Media */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between font-mono text-[10px] font-black">
+                      <span className="text-black">MEDIA & MUSIC MODS</span>
+                      <span className="text-neutral-500">{statsSummary.total > 0 ? Math.round((statsSummary.media / statsSummary.total) * 100) : 0}%</span>
+                    </div>
+                    <div className="w-full bg-neutral-100 border border-black rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className="bg-[#FFE600] h-full rounded-full transition-all duration-500"
+                        style={{ width: `${statsSummary.total > 0 ? (statsSummary.media / statsSummary.total) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Social */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between font-mono text-[10px] font-black">
+                      <span className="text-black">SOCIAL NETWORKS</span>
+                      <span className="text-neutral-500">{statsSummary.total > 0 ? Math.round((statsSummary.social / statsSummary.total) * 100) : 0}%</span>
+                    </div>
+                    <div className="w-full bg-neutral-100 border border-black rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className="bg-[#FFE600] h-full rounded-full transition-all duration-500"
+                        style={{ width: `${statsSummary.total > 0 ? (statsSummary.social / statsSummary.total) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Apps Render with Scroll Entrance Animations */}
         {isLoading && apps.length === 0 ? (
@@ -560,7 +864,7 @@ export const App: React.FC = () => {
           </div>
         ) : viewMode === 'compact' ? (
           /* Compact Rows View with scroll animation */
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 mt-4 sm:mt-5">
             {displayedApps.map((app, index) => (
               <motion.div
                 key={app.id}
@@ -583,7 +887,7 @@ export const App: React.FC = () => {
           </div>
         ) : (
           /* Rich Grid Cards View with scroll animation */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 mt-4 sm:mt-5">
             {displayedApps.map((app, index) => (
               <motion.div
                 key={app.id}
@@ -640,6 +944,7 @@ export const App: React.FC = () => {
           viewport={{ once: false, amount: 0.2 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="mt-12 flex justify-center w-full select-none"
+          onContextMenu={(e) => e.preventDefault()}
         >
           <FlipCard
             front={
@@ -649,7 +954,9 @@ export const App: React.FC = () => {
                   (e.currentTarget as HTMLImageElement).src = '/front_image.jpg';
                 }}
                 alt="Front Image"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
               />
             }
             back={
@@ -659,7 +966,9 @@ export const App: React.FC = () => {
                   (e.currentTarget as HTMLImageElement).src = '/back_image.jpg';
                 }}
                 alt="Profile Photo"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
               />
             }
             axis="y"
@@ -746,9 +1055,11 @@ export const App: React.FC = () => {
             {/* Action Links */}
             <div className="grid grid-cols-2 gap-2.5 w-full max-w-xs sm:max-w-sm pt-3 border-t-2 border-dashed border-neutral-200">
               <a
-                href="https://github.com/AlexJamesHQ"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.open("https://github.com/AlexJamesHQ", "_blank", "noopener,noreferrer");
+                }}
                 className="w-full py-2.5 px-3 bg-white text-black border-2 border-black rounded-xl shadow-[2.5px_2.5px_0px_#000] hover:bg-neutral-100 hover:scale-[1.02] active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center gap-1.5 text-xs font-bold font-mono uppercase transition-all cursor-pointer"
               >
                 <GitHubIcon className="w-4 h-4 inline" />
@@ -756,9 +1067,11 @@ export const App: React.FC = () => {
               </a>
 
               <a
-                href="https://alex-james.vercel.app"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.open("https://alex-james.vercel.app", "_blank", "noopener,noreferrer");
+                }}
                 className="w-full py-2.5 px-3 bg-[#FFE600] text-black border-2 border-black rounded-xl shadow-[2.5px_2.5px_0px_#000] hover:bg-yellow-300 hover:scale-[1.02] active:translate-x-[1px] active:translate-y-[1px] flex items-center justify-center gap-1.5 text-xs font-black font-mono uppercase transition-all cursor-pointer"
               >
                 <span>Portfolio</span>
@@ -820,7 +1133,22 @@ export const App: React.FC = () => {
         sortBy="updated"
         onSelectSortBy={() => {}}
         totalStarredCount={apps.length}
+        accentColor={accentColor}
+        onAccentColorChange={handleAccentColorChange}
+        gridStyle={gridStyle}
+        onGridStyleChange={handleGridStyleChange}
       />
+
+      {/* Request an App Modal */}
+      <AnimatePresence>
+        {isRequestModalOpen && (
+          <RequestAppModal
+            isOpen={isRequestModalOpen}
+            onClose={() => setIsRequestModalOpen(false)}
+            accentColor={accentColor}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Floating Heart Rain Animation */}
       {heartParticles.length > 0 && (
