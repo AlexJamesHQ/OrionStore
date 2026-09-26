@@ -39,6 +39,7 @@ import {
   LayoutGrid,
   List,
   ArrowUpDown,
+  ChevronDown,
   ArrowUp,
   TrendingUp,
 } from 'lucide-react';
@@ -109,9 +110,9 @@ export const App: React.FC = () => {
 
   const [accentColor, setAccentColor] = useState<string>(() => {
     try {
-      return localStorage.getItem('orion_accent_color') || '#F9D949';
+      return localStorage.getItem('orion_accent_color') || '#FFFFFF';
     } catch {
-      return '#F9D949';
+      return '#FFFFFF';
     }
   });
 
@@ -148,6 +149,7 @@ export const App: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState<number>(36);
   const [showStats, setShowStats] = useState(false);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
 
   // Sync states to localStorage
   useEffect(() => {
@@ -636,23 +638,36 @@ export const App: React.FC = () => {
           </div>
 
           {/* Compact Mobile-Friendly Controls Bar */}
-          <div className="flex items-center justify-between gap-2.5 select-none bg-white border-2 border-black rounded-xl p-2.5 sm:p-3 shadow-[2.5px_2.5px_0px_#000] mb-1">
-            {/* Left: Section Title, Count & Insights Toggler */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <h2 className="text-[#6B21A8] font-black text-xs sm:text-sm tracking-wide uppercase leading-none truncate">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2.5 select-none bg-white border-2 border-black rounded-xl p-2 sm:p-2.5 shadow-[2.5px_2.5px_0px_#000] mb-1">
+            {/* Left: Section Title & Count */}
+            <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+              <h2 className="text-[#6B21A8] font-black text-xs sm:text-sm tracking-wide uppercase leading-none">
                 {searchQuery ? `SEARCH` : activeTab === 'all' ? 'ALL' : activeTab === 'featured' ? 'FEATURED' : activeTab === 'utilities' ? 'UTILITIES' : 'SAVED'}
               </h2>
-              <span className="text-[10px] sm:text-xs font-mono font-black text-black bg-[#FFE600] border border-black px-1.5 py-0.5 rounded-lg shadow-[1px_1px_0px_#000] flex-shrink-0">
+              <span className="text-[10px] sm:text-xs font-mono font-black text-black bg-[#FFE600] border border-black px-1.5 py-0.5 rounded-lg shadow-[1px_1px_0px_#000]">
                 {filteredApps.length}
               </span>
-              
+
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-[10px] font-mono font-bold text-neutral-500 hover:text-black underline ml-0.5 cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Right: Actions (Stats, Request, Sort, View Mode) */}
+            <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   playRetroSound('click');
                   setShowStats(!showStats);
                 }}
-                className={`px-2 py-1 border-2 border-black rounded-lg text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-tight shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none transition-all cursor-pointer flex items-center gap-1 flex-shrink-0 ml-1 ${
+                className={`p-1 px-1.5 sm:px-2 border-2 border-black rounded-lg text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-tight shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none transition-all cursor-pointer flex items-center gap-1 ${
                   showStats
                     ? 'bg-black text-[#FFE600]'
                     : 'bg-[#FAF6EE] text-black hover:bg-neutral-100'
@@ -661,7 +676,7 @@ export const App: React.FC = () => {
                 title="Toggle Live App Catalog Stats"
               >
                 <BarChart3 className="w-3 h-3 stroke-[2.5]" />
-                <span className="hidden xs:inline">STATS</span>
+                <span className="hidden sm:inline">STATS</span>
               </button>
 
               <button
@@ -670,58 +685,86 @@ export const App: React.FC = () => {
                   playRetroSound('click');
                   setIsRequestModalOpen(true);
                 }}
-                className="px-2 py-1 border-2 border-black rounded-lg text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-tight shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none transition-all cursor-pointer flex items-center gap-1 flex-shrink-0 ml-1 bg-white hover:bg-neutral-100 text-black select-none"
+                className="p-1 px-1.5 sm:px-2 border-2 border-black rounded-lg text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-tight shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none transition-all cursor-pointer flex items-center gap-1 bg-white hover:bg-neutral-100 text-black"
                 title="Request a new Modded App"
               >
                 <Mail className="w-3 h-3 stroke-[2.5]" />
-                <span>REQUEST APP</span>
+                <span className="hidden sm:inline">REQUEST</span>
               </button>
 
-              {searchQuery && (
+              {/* Custom Neobrutalist Sort Dropdown (Replaces bugged native select) */}
+              <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="text-[10px] font-mono font-bold text-neutral-500 hover:text-black underline ml-1 cursor-pointer flex-shrink-0"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* Right: Neobrutalist Styled Sort and View Mode */}
-            <div className="flex items-center gap-2">
-              {/* Sort Selector with Neobrutalist styling */}
-              <div className="flex items-center gap-1.5 bg-[#FFE600] border-2 border-black rounded-xl px-3 py-1.5 shadow-[2px_2px_0px_#000]">
-                <ArrowUpDown className="w-3.5 h-3.5 text-black stroke-[3]" />
-                <select
-                  value={sortBy}
-                  onChange={(e) => {
+                  onClick={() => {
                     playRetroSound('click');
-                    setSortBy(e.target.value as SortOption);
+                    setIsSortOpen(!isSortOpen);
                   }}
-                  className="bg-transparent font-mono text-xs font-black text-black focus:outline-none cursor-pointer uppercase"
+                  className="flex items-center gap-1 bg-[#FFE600] border-2 border-black rounded-lg px-2 py-1 shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none cursor-pointer font-mono text-[9px] sm:text-xs font-black text-black uppercase select-none"
                 >
-                  <option value="recommended">Featured / Relevant</option>
-                  <option value="name">Name (A → Z)</option>
-                  <option value="patches">Most Patches</option>
-                  <option value="category">Category</option>
-                </select>
+                  <ArrowUpDown className="w-3 h-3 text-black stroke-[2.5]" />
+                  <span>
+                    {sortBy === 'recommended'
+                      ? 'Featured'
+                      : sortBy === 'name'
+                      ? 'Name'
+                      : sortBy === 'patches'
+                      ? 'Patches'
+                      : 'Category'}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-black stroke-[2.5]" />
+                </button>
+
+                {/* Floating Sort Options Menu */}
+                {isSortOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-30"
+                      onClick={() => setIsSortOpen(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-1.5 z-40 bg-white border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] p-1 flex flex-col gap-0.5 min-w-[125px] select-none">
+                      {[
+                        { id: 'recommended', label: 'Featured' },
+                        { id: 'name', label: 'Name (A-Z)' },
+                        { id: 'patches', label: 'Most Patches' },
+                        { id: 'category', label: 'Category' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            playRetroSound('click');
+                            setSortBy(opt.id as SortOption);
+                            setIsSortOpen(false);
+                          }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono font-black uppercase transition-colors cursor-pointer ${
+                            sortBy === opt.id
+                              ? 'bg-[#FFE600] text-black border border-black shadow-[1px_1px_0px_#000]'
+                              : 'text-neutral-800 hover:bg-neutral-100'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* View Mode Toggle: Grid vs Compact List */}
-              <div className="flex items-center bg-[#FAF6EE] border-2 border-black rounded-xl p-0.5 shadow-[2px_2px_0px_#000]">
+              <div className="flex items-center bg-[#FAF6EE] border-2 border-black rounded-lg p-0.5 shadow-[1px_1px_0px_#000]">
                 <button
                   type="button"
                   onClick={() => {
                     playRetroSound('click');
                     setViewMode('grid');
                   }}
-                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                    viewMode === 'grid' ? 'bg-[#FFE600] border border-black shadow-[1px_1px_0px_#000]' : 'text-neutral-500 hover:text-black'
+                  className={`p-1 rounded-md transition-colors cursor-pointer ${
+                    viewMode === 'grid' ? 'bg-[#FFE600] border border-black shadow-[0.5px_0.5px_0px_#000]' : 'text-neutral-500 hover:text-black'
                   }`}
                   title="Grid view"
                 >
-                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <LayoutGrid className="w-3 h-3" />
                 </button>
                 <button
                   type="button"
@@ -729,12 +772,12 @@ export const App: React.FC = () => {
                     playRetroSound('click');
                     setViewMode('compact');
                   }}
-                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                    viewMode === 'compact' ? 'bg-[#FFE600] border border-black shadow-[1px_1px_0px_#000]' : 'text-neutral-500 hover:text-black'
+                  className={`p-1 rounded-md transition-colors cursor-pointer ${
+                    viewMode === 'compact' ? 'bg-[#FFE600] border border-black shadow-[0.5px_0.5px_0px_#000]' : 'text-neutral-500 hover:text-black'
                   }`}
                   title="Compact list view"
                 >
-                  <List className="w-3.5 h-3.5" />
+                  <List className="w-3 h-3" />
                 </button>
               </div>
             </div>
@@ -996,7 +1039,7 @@ export const App: React.FC = () => {
         </motion.div>
 
         {/* TextPressure Variable Font Header */}
-        <div className="w-full py-4 px-4 sm:px-6 bg-[#09090f] border-t-4 border-b-4 border-black shadow-[0_4px_0px_#000] overflow-hidden my-10">
+        <div className="w-full py-4 px-4 sm:px-6 bg-black border-t-4 border-b-4 border-black shadow-[0_4px_0px_#000] overflow-hidden my-10 select-none">
           <TextPressure
             text="ALEX JAMES DEV"
             flex={true}
@@ -1137,6 +1180,7 @@ export const App: React.FC = () => {
         onAccentColorChange={handleAccentColorChange}
         gridStyle={gridStyle}
         onGridStyleChange={handleGridStyleChange}
+        onRequestApp={() => setIsRequestModalOpen(true)}
       />
 
       {/* Request an App Modal */}
