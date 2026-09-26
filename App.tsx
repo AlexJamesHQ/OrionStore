@@ -2,7 +2,17 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OrionAppItem, GitHubUserProfile } from './types';
 import { localAppsData } from './data/localAppsData';
-import { fetchOrionApps } from './services/orionAppsService';
+import {
+  fetchOrionApps,
+  loadCustomUpdatedApps,
+  saveCustomUpdatedApp,
+  saveAllCustomUpdatedApps,
+  deleteCustomUpdatedApp,
+  downloadUpdateApkJsonFile,
+  fetchUpdateApkFromGitHub,
+  isGitHubAutoSyncEnabled,
+  getGitHubUpdateUrl,
+} from './services/orionAppsService';
 import { playRetroSound } from './services/sfxService';
 import { DEFAULT_USER_PROFILE } from './data/sampleRepos';
 import {
@@ -15,6 +25,8 @@ import {
   OrionAppDetailModal,
   InAppDownloadModal,
   RequestAppModal,
+  JsonUpdateModal,
+  AppShareModal,
   GitHubIcon,
 } from './components';
 import {
@@ -42,9 +54,13 @@ import {
   ChevronDown,
   ArrowUp,
   TrendingUp,
+  FileJson,
+  Plus,
+  Radio,
+  Github,
 } from 'lucide-react';
 
-type StoreTab = 'all' | 'featured' | 'utilities' | 'favorites';
+type StoreTab = 'all' | 'updates' | 'utilities' | 'favorites';
 type SortOption = 'recommended' | 'name' | 'patches' | 'category';
 type PlatformOption = 'all' | 'mobile' | 'tv' | 'pc';
 
@@ -69,6 +85,13 @@ export const App: React.FC = () => {
   const [apps, setApps] = useState<OrionAppItem[]>(() => (localAppsData as OrionAppItem[]) || []);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Custom User Updated Apps from update_apk.json
+  const [customUpdatedApps, setCustomUpdatedApps] = useState<OrionAppItem[]>(() => {
+    const loaded = loadCustomUpdatedApps();
+    if (loaded && loaded.length > 0) return loaded;
+    return [];
+  });
 
   // Selected App for Detail Modal & In-App Download Modal
   const [selectedApp, setSelectedApp] = useState<OrionAppItem | null>(null);
@@ -149,7 +172,11 @@ export const App: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState<number>(36);
   const [showStats, setShowStats] = useState(false);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [sharingApp, setSharingApp] = useState<OrionAppItem | null>(null);
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isSyncingGitHub, setIsSyncingGitHub] = useState(false);
+  const [githubSyncNotice, setGithubSyncNotice] = useState<{ message: string; isError?: boolean; canOpenModal?: boolean } | null>(null);
 
   // Sync states to localStorage
   useEffect(() => {
@@ -323,9 +350,65 @@ export const App: React.FC = () => {
       } catch (err) {
         console.warn('Background auto-sync failed:', err);
       }
+
+      // Step 3: Auto-sync update_apk.json from user's GitHub files
+      if (isGitHubAutoSyncEnabled()) {
+        try {
+          const gitRes = await fetchUpdateApkFromGitHub();
+          if (gitRes.success && gitRes.apps.length > 0) {
+            setCustomUpdatedApps(gitRes.apps);
+          }
+        } catch (err) {
+          console.warn('Background GitHub update_apk.json sync failed:', err);
+        }
+      }
     };
     loadApps();
   }, []);
+
+  const handleSyncGitHub = async () => {
+    playRetroSound('click');
+    setIsSyncingGitHub(true);
+    setGithubSyncNotice(null);
+    try {
+      const res = await fetchUpdateApkFromGitHub();
+      if (res.success && res.apps.length > 0) {
+        playRetroSound('success');
+        setCustomUpdatedApps(res.apps);
+        setGithubSyncNotice({
+          message: `✓ Successfully synced ${res.apps.length} apps from GitHub!`,
+          isError: false,
+        });
+        setTimeout(() => setGithubSyncNotice(null), 5000);
+      } else {
+        playRetroSound('error');
+        if (res.statusCode === 404) {
+          setGithubSyncNotice({
+            message: `⚠️ GitHub update_apk.json not found (404 Not Found). Click Setup to configure your repository.`,
+            isError: true,
+            canOpenModal: true,
+          });
+        } else {
+          setGithubSyncNotice({
+            message: `⚠️ ${res.message || 'GitHub sync failed'}`,
+            isError: true,
+            canOpenModal: true,
+          });
+        }
+        setTimeout(() => setGithubSyncNotice(null), 8000);
+      }
+    } catch (err: any) {
+      playRetroSound('error');
+      setGithubSyncNotice({
+        message: `⚠️ ${err?.message || 'Sync error'}`,
+        isError: true,
+        canOpenModal: true,
+      });
+      setTimeout(() => setGithubSyncNotice(null), 8000);
+    } finally {
+      setIsSyncingGitHub(false);
+    }
+  };
 
   const handleRefresh = async () => {
     playRetroSound('click');
@@ -336,6 +419,7 @@ export const App: React.FC = () => {
       if (freshApps && freshApps.length > 0) {
         setApps(freshApps);
       }
+      await handleSyncGitHub();
     } catch (err) {
       console.error('Refresh failed:', err);
     } finally {
@@ -377,8 +461,8 @@ export const App: React.FC = () => {
 
   // Tab filtering
   const tabFilteredApps = useMemo(() => {
-    if (activeTab === 'featured') {
-      return apps.filter((a) => a.isFeatured || (a.patches && a.patches.length > 0));
+    if (activeTab === 'updates') {
+      return customUpdatedApps;
     }
     if (activeTab === 'utilities') {
       return apps.filter((a) => {
@@ -390,7 +474,44 @@ export const App: React.FC = () => {
       return apps.filter((a) => favoriteIds.includes(a.id));
     }
     return apps;
-  }, [apps, activeTab, favoriteIds]);
+  }, [apps, activeTab, favoriteIds, customUpdatedApps]);
+
+  const handleAppCreated = (newApp: OrionAppItem) => {
+    const updatedCustom = saveCustomUpdatedApp(newApp);
+    setCustomUpdatedApps(updatedCustom);
+    setApps((prev) => {
+      const idx = prev.findIndex((a) => a.id === newApp.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = newApp;
+        return next;
+      }
+      return [newApp, ...prev];
+    });
+    setActiveTab('updates');
+  };
+
+  const handleDownloadUpdateJson = () => {
+    playRetroSound('success');
+    downloadUpdateApkJsonFile(customUpdatedApps);
+  };
+
+  const handleApplyUpdates = (newCustomApps: OrionAppItem[]) => {
+    playRetroSound('success');
+    const saved = saveAllCustomUpdatedApps(newCustomApps);
+    setCustomUpdatedApps(saved);
+    setApps((prev) => {
+      const map = new Map<string, OrionAppItem>();
+      saved.forEach((a) => map.set(a.id, a));
+      prev.forEach((a) => {
+        if (!map.has(a.id)) map.set(a.id, a);
+      });
+      return Array.from(map.values());
+    });
+    setActiveTab('updates');
+    setSelectedCategory('All');
+    setSearchQuery('');
+  };
 
   // Intelligent Search & Scoring Engine
   const filteredApps = useMemo(() => {
@@ -563,20 +684,189 @@ export const App: React.FC = () => {
       />
 
       {/* Main App Store Container */}
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-5 sm:py-7 flex flex-col">
+      <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3 flex flex-col">
         
 
 
 
 
         {/* Sticky Filter & Search Control Center */}
-        <div className="sticky top-0 z-30 bg-[#ECE8DE]/95 backdrop-blur-md pt-3.5 pb-3 -mx-4 px-4 sm:-mx-6 sm:px-6 shadow-sm">
-          {/* High-Performance Smart Search Bar styled exactly like the reference image */}
-          <div className="w-full mb-5">
-            <div className="w-full bg-white border-[3px] border-black rounded-full p-1.5 flex items-center shadow-[4px_4px_0px_#000]">
-              {/* Inner Input Wrapper with cream background and light gray/black border */}
-              <div className="flex-1 flex items-center bg-[#FAF6EE] border-2 border-neutral-400 rounded-full py-1.5 px-3.5 min-w-0 mr-1.5">
-                <Search className="w-4 h-4 text-neutral-400 mr-2 flex-shrink-0" />
+        <div className="sticky top-0 z-30 bg-[#ECE8DE]/95 backdrop-blur-md pt-1.5 pb-1.5 -mx-4 px-4 sm:-mx-6 sm:px-6 shadow-sm">
+          {/* GitHub Sync Toast Notification */}
+          <AnimatePresence>
+            {githubSyncNotice && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className={`mb-2.5 border-2 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-3 shadow-[2px_2px_0px_#000] font-mono text-xs font-bold ${
+                  githubSyncNotice.isError
+                    ? 'bg-amber-100 border-amber-900 text-amber-950'
+                    : 'bg-emerald-100 border-emerald-900 text-emerald-950'
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Github className="w-4 h-4 text-black flex-shrink-0" />
+                  <span className="truncate">{githubSyncNotice.message}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {githubSyncNotice.canOpenModal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playRetroSound('click');
+                        setIsJsonModalOpen(true);
+                        setGithubSyncNotice(null);
+                      }}
+                      className="px-2.5 py-1 bg-white hover:bg-neutral-100 text-black border border-black rounded-lg font-black text-[11px] uppercase cursor-pointer shadow-[1px_1px_0px_#000]"
+                    >
+                      Setup
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setGithubSyncNotice(null)}
+                    className="text-neutral-800 hover:text-black font-black text-xs cursor-pointer p-0.5"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Top Store Navigation & Actions: Clean Unified Neo-Brutalist Bar */}
+          <div className="mb-2 bg-white border-2 border-black rounded-xl p-1 sm:p-1.5 shadow-[1.5px_1.5px_0px_#000] flex items-center justify-between gap-1 select-none overflow-x-auto no-scrollbar">
+            {/* Left: Store View Tabs with clean uppercase labels without parentheses */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Tab: ALL */}
+              <button
+                type="button"
+                onClick={() => {
+                  playRetroSound('click');
+                  setActiveTab('all');
+                  setVisibleCount(36);
+                }}
+                className={`h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg border-2 border-black flex items-center justify-center gap-1 transition-all cursor-pointer font-mono text-[11px] sm:text-xs font-black ${
+                  activeTab === 'all'
+                    ? 'bg-[#FFE600] text-black shadow-[1px_1px_0px_#000]'
+                    : 'bg-[#FAF6EE] text-neutral-800 hover:bg-neutral-100'
+                }`}
+                title="All Applications"
+              >
+                <Grid className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
+                <span>ALL</span>
+              </button>
+
+              {/* Tab: UPDATES */}
+              <button
+                type="button"
+                onClick={() => {
+                  playRetroSound('click');
+                  setActiveTab('updates');
+                  setVisibleCount(36);
+                }}
+                className={`h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg border-2 border-black flex items-center justify-center gap-1 transition-all cursor-pointer font-mono text-[11px] sm:text-xs font-black ${
+                  activeTab === 'updates'
+                    ? 'bg-[#10B981] text-white shadow-[1px_1px_0px_#000]'
+                    : 'bg-emerald-50 text-emerald-950 hover:bg-emerald-100'
+                }`}
+                title="GitHub & Custom Updated Apps"
+              >
+                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
+                <span>UPDATES</span>
+              </button>
+
+              {/* Tab: UTILITIES */}
+              <button
+                type="button"
+                onClick={() => {
+                  playRetroSound('click');
+                  setActiveTab('utilities');
+                  setVisibleCount(36);
+                }}
+                className={`h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg border-2 border-black flex items-center justify-center gap-1 transition-all cursor-pointer font-mono text-[11px] sm:text-xs font-black ${
+                  activeTab === 'utilities'
+                    ? 'bg-[#FFE600] text-black shadow-[1px_1px_0px_#000]'
+                    : 'bg-[#FAF6EE] text-neutral-800 hover:bg-neutral-100'
+                }`}
+                title="System Utilities & Tools"
+              >
+                <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-neutral-800" />
+                <span className="hidden sm:inline">UTILITIES</span>
+              </button>
+
+              {/* Tab: SAVED */}
+              <button
+                type="button"
+                onClick={() => {
+                  playRetroSound('click');
+                  setActiveTab('favorites');
+                  setVisibleCount(36);
+                }}
+                className={`h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg border-2 border-black flex items-center justify-center gap-1 transition-all cursor-pointer font-mono text-[11px] sm:text-xs font-black ${
+                  activeTab === 'favorites'
+                    ? 'bg-[#FFE600] text-black shadow-[1px_1px_0px_#000]'
+                    : 'bg-[#FAF6EE] text-neutral-800 hover:bg-neutral-100'
+                }`}
+                title="Saved Favorites"
+              >
+                <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${favoriteIds.length > 0 ? 'text-rose-500 fill-rose-500' : 'text-neutral-500'}`} />
+                <span className="hidden sm:inline">SAVED</span>
+              </button>
+            </div>
+
+            {/* Right: Actions (GitHub Sync, JSON Center, Add App) */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {/* GitHub 1-Click Sync Button */}
+              <button
+                type="button"
+                onClick={handleSyncGitHub}
+                disabled={isSyncingGitHub}
+                className="h-7 sm:h-8 px-2 bg-white hover:bg-neutral-100 text-black border-2 border-black rounded-lg flex items-center justify-center gap-1 shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] transition-all cursor-pointer font-mono text-[11px] font-black disabled:opacity-50"
+                title="Sync update_apk.json from GitHub"
+              >
+                <Github className="w-3 h-3" />
+                <RefreshCw className={`w-3 h-3 ${isSyncingGitHub ? 'animate-spin text-emerald-600' : ''}`} />
+                <span className="hidden md:inline text-[10px]">Sync GitHub</span>
+              </button>
+
+              {/* JSON Modal Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  playRetroSound('click');
+                  setIsJsonModalOpen(true);
+                }}
+                className="h-7 sm:h-8 px-2 bg-[#FFE600] hover:bg-yellow-300 text-black border-2 border-black rounded-lg flex items-center justify-center gap-1 shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] transition-all cursor-pointer font-mono text-[11px] font-black"
+                title="Update & Preview JSON / GitHub Config"
+              >
+                <FileJson className="w-3 h-3 stroke-[2.5]" />
+                <span className="hidden sm:inline text-[10px]">JSON</span>
+              </button>
+
+              {/* Add App Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  playRetroSound('click');
+                  setIsRequestModalOpen(true);
+                }}
+                className="h-7 sm:h-8 px-2 bg-black hover:bg-neutral-800 text-[#FFE600] border-2 border-black rounded-lg flex items-center justify-center gap-1 shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] transition-all cursor-pointer font-mono text-[11px] font-black"
+                title="Add New Android App"
+              >
+                <Plus className="w-3 h-3 stroke-[3]" />
+                <span className="hidden sm:inline text-[10px]">Add</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Clean Pixel-Perfect Smart Search Bar */}
+          <div className="w-full mb-2">
+            <div className="w-full bg-white border-2 border-black rounded-xl p-1 flex items-center gap-1 shadow-[1.5px_1.5px_0px_#000]">
+              {/* Inner Input Container */}
+              <div className="flex-1 flex items-center bg-[#FAF6EE] rounded-lg px-2.5 py-1 min-w-0 border border-black/20">
+                <Search className="w-3.5 h-3.5 text-neutral-500 mr-1.5 flex-shrink-0" />
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -586,7 +876,7 @@ export const App: React.FC = () => {
                     setVisibleCount(36);
                   }}
                   placeholder="Search Android apps..."
-                  className="w-full bg-transparent font-mono text-xs sm:text-sm font-bold text-black placeholder:text-neutral-500 focus:outline-none min-w-0"
+                  className="w-full bg-transparent font-mono text-xs font-bold text-black placeholder:text-neutral-500 focus:outline-none min-w-0"
                 />
                 {searchQuery && (
                   <button
@@ -595,7 +885,7 @@ export const App: React.FC = () => {
                     className="p-1 text-neutral-400 hover:text-black cursor-pointer ml-1"
                     title="Clear search"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
@@ -607,17 +897,17 @@ export const App: React.FC = () => {
                   playRetroSound('click');
                   searchInputRef.current?.focus();
                 }}
-                className="bg-[#FFE600] border-2 border-black text-black rounded-full px-4 sm:px-5 py-2 sm:py-2.5 font-mono text-xs sm:text-sm font-black uppercase flex items-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-yellow-300 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer select-none whitespace-nowrap"
+                className="bg-[#FFE600] hover:bg-yellow-300 border-2 border-black text-black rounded-lg px-2.5 sm:px-3 py-1 font-mono text-[11px] font-black uppercase flex items-center gap-1 shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] transition-all cursor-pointer select-none whitespace-nowrap"
                 title="Search Store"
               >
-                <Search className="w-3.5 h-3.5 text-black stroke-[3]" />
+                <Search className="w-3 h-3 text-black stroke-[3]" />
                 <span>SEARCH</span>
               </button>
             </div>
           </div>
 
           {/* Category Chips Bar with safe margin padding and native momentum swipe */}
-          <div className="-mx-4 px-4 sm:-mx-6 sm:px-6 overflow-x-auto no-scrollbar flex items-center gap-1.5 pt-1.5 pb-3 mb-4 select-none scroll-smooth">
+          <div className="overflow-x-auto no-scrollbar flex items-center gap-1 py-0.5 mb-2 select-none scroll-smooth">
             {categoriesWithCounts.map((cat) => (
               <button
                 key={cat}
@@ -626,10 +916,10 @@ export const App: React.FC = () => {
                   setSelectedCategory(cat);
                   setVisibleCount(36);
                 }}
-                className={`px-3.5 py-1.5 text-xs font-black rounded-xl border-2 border-black whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                className={`px-2.5 py-1 text-[11px] font-black rounded-lg border-2 border-black whitespace-nowrap transition-all duration-200 cursor-pointer ${
                   selectedCategory === cat
-                    ? 'bg-[#FFE600] text-black shadow-[2px_2px_0px_#000]'
-                    : 'bg-white text-neutral-700 hover:bg-neutral-100 shadow-[1.5px_1.5px_0px_#000]'
+                    ? 'bg-[#FFE600] text-black shadow-[1px_1px_0px_#000]'
+                    : 'bg-white text-neutral-800 hover:bg-neutral-100 shadow-[1px_1px_0px_#000]'
                 }`}
               >
                 {cat}
@@ -638,13 +928,13 @@ export const App: React.FC = () => {
           </div>
 
           {/* Compact Mobile-Friendly Controls Bar */}
-          <div className="flex items-center justify-between gap-1.5 sm:gap-2.5 select-none bg-white border-2 border-black rounded-xl p-2 sm:p-2.5 shadow-[2.5px_2.5px_0px_#000] mb-1">
+          <div className="flex items-center justify-between gap-1 select-none bg-white border-2 border-black rounded-xl p-1 sm:p-1.5 shadow-[1.5px_1.5px_0px_#000] mb-2.5 overflow-x-auto no-scrollbar">
             {/* Left: Section Title & Count */}
             <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
               <h2 className="text-[#6B21A8] font-black text-xs sm:text-sm tracking-wide uppercase leading-none">
-                {searchQuery ? `SEARCH` : activeTab === 'all' ? 'ALL' : activeTab === 'featured' ? 'FEATURED' : activeTab === 'utilities' ? 'UTILITIES' : 'SAVED'}
+                {searchQuery ? `SEARCH` : activeTab === 'all' ? 'ALL' : activeTab === 'updates' ? 'UPDATES' : activeTab === 'utilities' ? 'UTILITIES' : 'SAVED'}
               </h2>
-              <span className="text-[10px] sm:text-xs font-mono font-black text-black bg-[#FFE600] border border-black px-1.5 py-0.5 rounded-lg shadow-[1px_1px_0px_#000]">
+              <span className="text-[10px] sm:text-xs font-mono font-black text-black bg-[#FFE600] border border-black px-1.5 py-0.5 rounded-md shadow-[1px_1px_0px_#000]">
                 {filteredApps.length}
               </span>
 
@@ -692,7 +982,7 @@ export const App: React.FC = () => {
                 <span className="hidden sm:inline">REQUEST</span>
               </button>
 
-              {/* Custom Neobrutalist Sort Dropdown (Replaces bugged native select) */}
+              {/* Custom Neobrutalist Sort Dropdown */}
               <div className="relative">
                 <button
                   type="button"
@@ -705,7 +995,7 @@ export const App: React.FC = () => {
                   <ArrowUpDown className="w-3 h-3 text-black stroke-[2.5]" />
                   <span>
                     {sortBy === 'recommended'
-                      ? 'Featured'
+                      ? 'Default'
                       : sortBy === 'name'
                       ? 'Name'
                       : sortBy === 'patches'
@@ -724,7 +1014,7 @@ export const App: React.FC = () => {
                     />
                     <div className="absolute right-0 top-full mt-1.5 z-40 bg-white border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] p-1 flex flex-col gap-0.5 min-w-[125px] select-none">
                       {[
-                        { id: 'recommended', label: 'Featured' },
+                        { id: 'recommended', label: 'Default' },
                         { id: 'name', label: 'Name (A-Z)' },
                         { id: 'patches', label: 'Most Patches' },
                         { id: 'category', label: 'Category' },
@@ -907,7 +1197,7 @@ export const App: React.FC = () => {
           </div>
         ) : viewMode === 'compact' ? (
           /* Compact Rows View with scroll animation */
-          <div className="flex flex-col gap-2 mt-4 sm:mt-5">
+          <div className="flex flex-col gap-1.5 mt-2.5">
             {displayedApps.map((app, index) => (
               <motion.div
                 key={app.id}
@@ -923,6 +1213,7 @@ export const App: React.FC = () => {
                   isFavorite={favoriteIds.includes(app.id)}
                   onToggleFavorite={handleToggleFavorite}
                   onDownloadClick={(a) => setDownloadingApp(a)}
+                  onShareApp={(a) => setSharingApp(a)}
                   viewMode="compact"
                 />
               </motion.div>
@@ -930,7 +1221,7 @@ export const App: React.FC = () => {
           </div>
         ) : (
           /* Rich Grid Cards View with scroll animation */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 mt-4 sm:mt-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mt-2.5">
             {displayedApps.map((app, index) => (
               <motion.div
                 key={app.id}
@@ -946,6 +1237,7 @@ export const App: React.FC = () => {
                   isFavorite={favoriteIds.includes(app.id)}
                   onToggleFavorite={handleToggleFavorite}
                   onDownloadClick={(a) => setDownloadingApp(a)}
+                  onShareApp={(a) => setSharingApp(a)}
                   viewMode="grid"
                 />
               </motion.div>
@@ -1190,6 +1482,32 @@ export const App: React.FC = () => {
             isOpen={isRequestModalOpen}
             onClose={() => setIsRequestModalOpen(false)}
             accentColor={accentColor}
+            onAppCreated={handleAppCreated}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* JSON Update & Live Preview Modal */}
+      <AnimatePresence>
+        {isJsonModalOpen && (
+          <JsonUpdateModal
+            isOpen={isJsonModalOpen}
+            onClose={() => setIsJsonModalOpen(false)}
+            currentUpdatedApps={customUpdatedApps}
+            onApplyUpdates={handleApplyUpdates}
+            onOpenAddModal={() => setIsRequestModalOpen(true)}
+            onSelectApp={(app) => setSelectedApp(app)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* App Share Modal */}
+      <AnimatePresence>
+        {sharingApp && (
+          <AppShareModal
+            isOpen={!!sharingApp}
+            app={sharingApp}
+            onClose={() => setSharingApp(null)}
           />
         )}
       </AnimatePresence>

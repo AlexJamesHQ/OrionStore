@@ -29,6 +29,7 @@ export interface OrionAppItem {
   screenshots?: string[];
   patches?: string[];
   isFeatured?: boolean;
+  isDemo?: boolean;
 }
 
 export interface Repository {
