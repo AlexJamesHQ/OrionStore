@@ -1,5 +1,5 @@
 // Retro SFX synthesizer using standard Web Audio API (Zero assets required, pure 8-bit synth!)
-export const playRetroSound = (type: 'click' | 'success' | 'toggle') => {
+export const playRetroSound = (type: 'click' | 'success' | 'toggle' | 'error') => {
   try {
     const isSfxEnabled = localStorage.getItem('orion_sfx_enabled') === 'true';
     if (!isSfxEnabled) return;
@@ -41,6 +41,15 @@ export const playRetroSound = (type: 'click' | 'success' | 'toggle') => {
       gainNode.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.07);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.08);
+    } else if (type === 'error') {
+      // Low buzzy error buzz sound
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(110, audioCtx.currentTime + 0.18);
+      gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.22);
     }
   } catch (e) {
     // Autoplay or policy blocked (no-op)
