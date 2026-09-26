@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, Sparkles, HelpCircle, ChevronDown, ChevronUp, BookOpen, ShieldCheck, CheckCircle2, Code2, Award, Zap, QrCode } from 'lucide-react';
+import { X, ExternalLink, Sparkles, HelpCircle, ChevronDown, ChevronUp, BookOpen, ShieldCheck, CheckCircle2, Code2, Award, Zap, QrCode, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GitHubUserProfile } from '../types';
 import { GitHubIcon, TelegramIcon, FacebookIcon, InstagramIcon, StarIcon } from './Icons';
@@ -22,6 +22,7 @@ interface MenuDrawerProps {
   onAccentColorChange: (color: string) => void;
   gridStyle: 'static' | 'drift' | 'warp' | 'dots' | 'dots-drift';
   onGridStyleChange: (style: 'static' | 'drift' | 'warp' | 'dots' | 'dots-drift') => void;
+  onRequestApp?: () => void;
 }
 
 export const MenuDrawer: React.FC<MenuDrawerProps> = ({
@@ -32,6 +33,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   onAccentColorChange,
   gridStyle,
   onGridStyleChange,
+  onRequestApp,
 }) => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [showDevQr, setShowDevQr] = useState(false);
@@ -229,6 +231,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             <p className="text-[10px] font-mono text-neutral-500 mb-3">Select your custom neobrutalist signature color</p>
             <div className="flex items-center gap-2 flex-wrap">
               {[
+                { hex: '#FFFFFF', name: 'Clean White' },
                 { hex: '#F9D949', name: 'Retro Yellow' },
                 { hex: '#86C8BC', name: 'Sage Teal' },
                 { hex: '#6EA8FF', name: 'Soft Blue' },
@@ -327,6 +330,35 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Request an App Action Block */}
+          {onRequestApp && (
+            <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] select-none">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-[#6B21A8]" />
+                  <div>
+                    <h4 className="font-black text-xs uppercase tracking-wider text-black">
+                      Can't Find an App?
+                    </h4>
+                    <p className="text-[10px] font-mono text-neutral-500 mt-0.5">Request your favorite mod to be added</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playRetroSound('click');
+                    onClose();
+                    onRequestApp();
+                  }}
+                  className="py-1.5 px-3 bg-[#FFE600] border-2 border-black rounded-xl text-[10px] font-mono font-black uppercase tracking-tight shadow-[2px_2px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none hover:bg-yellow-300 transition-all cursor-pointer flex-shrink-0"
+                  style={{ backgroundColor: accentColor }}
+                >
+                  REQUEST
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Frequently Asked Questions (FAQs) */}
           <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000]">

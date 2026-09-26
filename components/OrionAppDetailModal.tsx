@@ -34,6 +34,7 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [authorCopied, setAuthorCopied] = useState(false);
 
   if (!app) return null;
 
@@ -206,20 +207,20 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
               </div>
             </div>
 
-            {/* Publisher Info Card (Shows Avatar + Name + Convenient Click-to-Copy, No External Redirection) */}
-            <div className="bg-white border-2 border-black rounded-2xl p-3.5 shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3 select-none">
-              <div className="flex items-center gap-3">
+            {/* Publisher Info Card (Shows Avatar + Name + Convenient Click-to-Copy) */}
+            <div className="bg-white border-2 border-black rounded-2xl p-3 sm:p-3.5 shadow-[3px_3px_0px_#000] flex items-center justify-between gap-2.5 select-none">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                 <img
                   src={`https://github.com/${githubUsername}.png`}
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=FFE600&color=000&bold=true`;
                   }}
                   alt={authorName}
-                  className="w-10 h-10 rounded-xl border-2 border-black object-cover shadow-[1.5px_1.5px_0px_#000] pointer-events-none"
+                  className="w-10 h-10 rounded-xl border-2 border-black object-cover shadow-[1.5px_1.5px_0px_#000] pointer-events-none flex-shrink-0"
                 />
-                <div>
+                <div className="min-w-0 flex-1">
                   <span className="text-[10px] font-mono font-bold text-neutral-500 uppercase block leading-none">PUBLISHED BY</span>
-                  <span className="font-black text-sm text-black block mt-0.5 select-all">{authorName}</span>
+                  <span className="font-black text-sm text-black block mt-0.5 truncate select-all" title={authorName}>{authorName}</span>
                 </div>
               </div>
 
@@ -229,42 +230,58 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
                   onClick={() => {
                     const profileUrl = `https://github.com/${githubUsername}`;
                     navigator.clipboard.writeText(profileUrl);
-                    // Standard visual feed-back on copy
-                    const btn = document.getElementById('copy-author-btn');
-                    if (btn) {
-                      btn.innerText = 'COPIED!';
-                      btn.classList.add('bg-[#FFE600]');
-                      setTimeout(() => {
-                        btn.innerText = 'COPY PROFILE';
-                        btn.classList.remove('bg-[#FFE600]');
-                      }, 1200);
-                    }
+                    setAuthorCopied(true);
+                    setTimeout(() => setAuthorCopied(false), 1500);
                   }}
-                  id="copy-author-btn"
-                  className="py-1.5 px-3 bg-[#FAF6EE] hover:bg-[#FFE600] border-2 border-black rounded-xl text-[10px] font-mono font-black uppercase transition-all shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer"
+                  className={`py-1.5 px-2.5 sm:px-3 border-2 border-black rounded-xl text-[10px] font-mono font-black uppercase transition-all shadow-[1.5px_1.5px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none cursor-pointer flex items-center gap-1.5 flex-shrink-0 ${
+                    authorCopied
+                      ? 'bg-[#FFE600] text-black'
+                      : 'bg-[#FAF6EE] hover:bg-[#FFE600] text-black'
+                  }`}
+                  title="Copy GitHub Profile Link"
                 >
-                  COPY PROFILE
+                  {authorCopied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>COPIED</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>COPY</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
 
             {/* Quick QR Code Scan & Download Section */}
-            <div className="bg-[#FAF6EE] border-2 border-black rounded-2xl p-3 sm:p-4 shadow-[3px_3px_0px_#000] transition-all">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowQr(!showQr);
-                }}
-                className="w-full flex items-center justify-between text-black font-black text-xs sm:text-sm uppercase tracking-wider cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <QrCode className="w-4 h-4 text-black stroke-[2.5]" />
-                  <span>Scan to Download on Phone</span>
+            <div className="bg-white border-2 border-black rounded-2xl p-3 sm:p-3.5 shadow-[3px_3px_0px_#000] select-none">
+              <div className="flex items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-xl border-2 border-black bg-[#FAF6EE] flex items-center justify-center flex-shrink-0 shadow-[1.5px_1.5px_0px_#000]">
+                    <QrCode className="w-5 h-5 text-black stroke-[2.5]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-mono font-bold text-neutral-500 uppercase block leading-none">SCAN & INSTALL</span>
+                    <span className="font-black text-sm text-black block mt-0.5 truncate">Download on Phone</span>
+                  </div>
                 </div>
-                <span className="px-2 py-0.5 bg-white border border-black rounded text-[10px] font-mono font-bold shadow-[1px_1px_0px_#000]">
-                  {showQr ? 'HIDE QR' : 'SHOW QR'}
-                </span>
-              </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowQr(!showQr)}
+                  className={`py-1.5 px-2.5 sm:px-3 border-2 border-black rounded-xl text-[10px] font-mono font-black uppercase transition-all shadow-[1.5px_1.5px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none cursor-pointer flex items-center gap-1.5 flex-shrink-0 ${
+                    showQr
+                      ? 'bg-[#FFE600] text-black'
+                      : 'bg-[#FAF6EE] hover:bg-[#FFE600] text-black'
+                  }`}
+                  title="Toggle QR Code"
+                >
+                  <QrCode className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>{showQr ? 'HIDE QR' : 'SHOW QR'}</span>
+                </button>
+              </div>
 
               <AnimatePresence>
                 {showQr && (
@@ -275,14 +292,14 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden flex flex-col items-center justify-center pt-3.5 text-center"
                   >
-                    <div className="p-3 bg-white border-2 border-black rounded-2xl shadow-[3px_3px_0px_#000] mb-2 relative group overflow-hidden">
+                    <div className="p-3 bg-[#FAF6EE] border-2 border-black rounded-2xl shadow-[3px_3px_0px_#000] mb-2 relative group overflow-hidden">
                       <img
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&color=000000&bgcolor=ffffff&data=${encodeURIComponent(downloadUrl)}`}
                         alt="Download QR Code"
                         className="w-32 h-32 object-contain pointer-events-none"
                       />
                     </div>
-                    <p className="font-mono text-[10px] sm:text-xs text-neutral-600 max-w-xs mt-1.5 leading-relaxed">
+                    <p className="font-mono text-[10px] sm:text-xs text-neutral-600 max-w-xs mt-1 leading-relaxed">
                       Point your phone camera or QR scanner at the screen to instantly trigger direct APK download!
                     </p>
                   </motion.div>
