@@ -86,10 +86,7 @@ export const NeobrutalistHeader: React.FC<NeobrutalistHeaderProps> = ({
               title="View APK releases and updates"
               className="h-8 sm:h-10 px-2 sm:px-3.5 bg-red-600 text-[#FFE600] rounded-lg sm:rounded-xl border-2 sm:border-[2.5px] border-black shadow-[2px_2px_0px_#000] hover:bg-red-700 active:translate-x-[1px] active:translate-y-[1px] font-black text-[10px] sm:text-xs uppercase flex items-center gap-1.5 transition-all cursor-pointer"
             >
-              <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5 flex-shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FFE600] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-[#FFE600] border border-black"></span>
-              </span>
+              <Sparkles className="w-3.5 h-3.5 fill-[#FFE600]" />
               <span className="hidden sm:inline font-black tracking-wide">Update</span>
               <span className="sm:hidden font-black">APK</span>
             </button>

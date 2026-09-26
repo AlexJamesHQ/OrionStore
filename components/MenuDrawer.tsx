@@ -200,22 +200,28 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 How to Use OrionStore
               </h4>
             </div>
-            <ul className="space-y-2 font-mono text-xs text-neutral-800 leading-relaxed">
+            <ul className="space-y-2.5 font-mono text-xs text-neutral-800 leading-relaxed">
               <li className="flex items-start gap-1.5">
                 <span className="font-black text-[#6B21A8]">1.</span>
-                <span><strong>Search & Filter:</strong> Use the search bar or category chips to find modded apps and utilities.</span>
+                <span><strong>Browse & Search:</strong> Search by app name, author, package, or description. Filter instantly using top category chips.</span>
               </li>
               <li className="flex items-start gap-1.5">
                 <span className="font-black text-[#6B21A8]">2.</span>
-                <span><strong>Download APK:</strong> Click <strong>GET APK</strong> to trigger instant downloads directly from official GitHub releases.</span>
+                <span><strong>Direct APK Get:</strong> Tap <strong>GET APK</strong> on any app card for a super-fast, direct download from official release nodes.</span>
               </li>
               <li className="flex items-start gap-1.5">
                 <span className="font-black text-[#6B21A8]">3.</span>
-                <span><strong>Live Sync:</strong> Tap the <strong>SYNC</strong> button inside the search bar to fetch fresh app releases in real time.</span>
+                <span><strong>Sync & Update:</strong> Click <strong>Sync GitHub</strong> to pull the absolute newest builds, versions, and features from active updates.</span>
               </li>
               <li className="flex items-start gap-1.5">
                 <span className="font-black text-[#6B21A8]">4.</span>
-                <span><strong>Bookmark:</strong> Click the heart icon to save favorite apps locally for quick access.</span>
+                <span><strong>Theme customization:</strong> Pick your signature Neobrutalist accent color below, and choose a moving background grid backdrop!</span>
+              </li>
+              <li className="flex items-start gap-1.5 bg-yellow-50 p-2 rounded-lg border border-yellow-200">
+                <span className="text-yellow-700">⚡</span>
+                <span className="text-[11px] font-bold text-amber-900">
+                  <strong>Grid Styles:</strong> Static (Classic grid), Drift (Slow moving paper), Warp (Hyperspeed flow), Retro Dots, or Dots Drift (Dynamic 8-bit particles).
+                </span>
               </li>
             </ul>
           </div>
@@ -400,23 +406,23 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             </div>
           </div>
 
-          {/* Developer Social Profiles */}
+          {/* Developer Links & Profiles */}
           <div className="space-y-2 pt-1">
             <label className="block text-[11px] font-black tracking-wider text-neutral-700 uppercase mb-1">
-              Developer Social Profiles:
+              Official Project & Developer:
             </label>
 
             <a
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                window.open("https://t.me/ALEX_JAMES_DEV", "_blank", "noopener,noreferrer");
+                window.open("https://github.com/AlexJamesHQ/OrionStore", "_blank", "noopener,noreferrer");
               }}
               className="w-full p-2.5 bg-[#FFE600] text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-between shadow-[2px_2px_0px_#000] hover:bg-yellow-300 hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
             >
               <div className="flex items-center gap-2">
-                <TelegramIcon className="w-4 h-4 text-black" />
-                <span>Telegram Channel</span>
+                <GitHubIcon className="w-4 h-4 text-black" />
+                <span>OrionStore GitHub Repo</span>
               </div>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
@@ -426,41 +432,24 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  window.open("https://www.facebook.com/share/1J6T4MuGbJ/", "_blank", "noopener,noreferrer");
+                  window.open("https://github.com/AlexJamesHQ", "_blank", "noopener,noreferrer");
                 }}
                 className="p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-[#FAF6EE] hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
               >
-                <FacebookIcon className="w-4 h-4 text-black" />
-                <span>Facebook</span>
+                <GitHubIcon className="w-4 h-4 text-black" />
+                <span>GitHub Dev</span>
                 <ExternalLink className="w-3 h-3 text-neutral-500" />
               </a>
 
               <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.open("https://www.instagram.com/alex.james.dev", "_blank", "noopener,noreferrer");
-                }}
+                href="mailto:md.amirulislam8504@gmail.com"
                 className="p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#000] hover:bg-[#FAF6EE] hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
               >
-                <InstagramIcon className="w-4 h-4 text-black" />
-                <span>Instagram</span>
+                <Mail className="w-4 h-4 text-black" />
+                <span>Email Dev</span>
                 <ExternalLink className="w-3 h-3 text-neutral-500" />
               </a>
             </div>
-
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                window.open("https://github.com/AlexJamesHQ", "_blank", "noopener,noreferrer");
-              }}
-              className="w-full p-2.5 bg-white text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-[2px_2px_0px_#000] hover:bg-neutral-50 hover:shadow-[3px_3px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
-            >
-              <GitHubIcon className="w-4 h-4" />
-              <span>GitHub Profile</span>
-              <ExternalLink className="w-3.5 h-3.5 text-neutral-500" />
-            </a>
           </div>
         </div>
 

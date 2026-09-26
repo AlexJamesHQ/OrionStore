@@ -14,5 +14,7 @@ export { OrionAppDetailModal } from './OrionAppDetailModal';
 export { OrionSettingsModal, type StoreSettings } from './OrionSettingsModal';
 export { AddAppModal } from './AddAppModal';
 export { RequestAppModal } from './RequestAppModal';
+export { JsonUpdateModal } from './JsonUpdateModal';
+export { AppShareModal } from './AppShareModal';
 export { TextType } from './TextType';
 export { GitHubIcon, TelegramIcon, FacebookIcon, InstagramIcon, StarIcon } from './Icons';

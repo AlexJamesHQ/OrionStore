@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { OrionAppItem } from '../types';
-import { Download, ExternalLink, Sparkles, Heart, Smartphone, Tv, Monitor, ShieldCheck, Tag } from 'lucide-react';
+import { Download, ExternalLink, Sparkles, Heart, Smartphone, Tv, Monitor, ShieldCheck, Tag, Share2, Check } from 'lucide-react';
 import { getDownloadUrlForApp } from '../services/orionAppsService';
+import { playRetroSound } from '../services/sfxService';
 
 interface OrionAppCardProps {
   app: OrionAppItem;
@@ -11,6 +12,7 @@ interface OrionAppCardProps {
   isFavorite?: boolean;
   onToggleFavorite?: (appId: string) => void;
   onDownloadClick?: (app: OrionAppItem) => void;
+  onShareApp?: (app: OrionAppItem) => void;
   viewMode?: 'grid' | 'compact';
 }
 
@@ -21,9 +23,16 @@ export const OrionAppCard: React.FC<OrionAppCardProps> = ({
   isFavorite = false,
   onToggleFavorite,
   onDownloadClick,
+  onShareApp,
   viewMode = 'grid',
 }) => {
   const [imgError, setImgError] = useState(false);
+  const [isShared, setIsShared] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [app.id, app.icon]);
+
   const downloadUrl = getDownloadUrlForApp(app);
 
   const handleDownloadClick = (e: React.MouseEvent) => {
@@ -41,6 +50,40 @@ export const OrionAppCard: React.FC<OrionAppCardProps> = ({
     e.stopPropagation();
     if (onToggleFavorite) {
       onToggleFavorite(app.id);
+    }
+  };
+
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    playRetroSound('click');
+    if (onShareApp) {
+      onShareApp(app);
+      return;
+    }
+    const targetUrl = downloadUrl && downloadUrl !== '#' ? downloadUrl : window.location.href;
+    const shareTitle = `${app.name} • ${app.version || 'Latest'} - OrionStore`;
+    const cleanDesc = app.description ? app.description.replace(/\n+/g, ' ').slice(0, 140) : 'Verified open-source Android APK';
+    const shareText = `📱 ${app.name} • ${app.version || 'Latest'}\n👤 Developer: ${app.author || 'Open Source'}\n📂 Category: ${app.category || 'Utility'}\n📦 Download APK: ${targetUrl}`;
+
+    if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare({ title: shareTitle, text: shareText, url: targetUrl })) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: targetUrl,
+        });
+        return;
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setIsShared(true);
+      setTimeout(() => setIsShared(false), 2000);
+    } catch {
+      // fallback
     }
   };
 
@@ -115,6 +158,7 @@ export const OrionAppCard: React.FC<OrionAppCardProps> = ({
                 src={app.icon}
                 alt={app.name}
                 loading="lazy"
+                referrerPolicy="no-referrer"
                 onError={() => setImgError(true)}
                 className="w-full h-full object-cover"
               />
@@ -141,7 +185,20 @@ export const OrionAppCard: React.FC<OrionAppCardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <button
+            type="button"
+            onClick={handleShareClick}
+            className="p-1.5 text-neutral-400 hover:text-black cursor-pointer transition-colors"
+            title="Share App"
+          >
+            {isShared ? (
+              <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+            ) : (
+              <Share2 className="w-3.5 h-3.5" />
+            )}
+          </button>
+
           {onToggleFavorite && (
             <button
               type="button"
@@ -169,80 +226,101 @@ export const OrionAppCard: React.FC<OrionAppCardProps> = ({
   return (
     <div
       onClick={() => onSelectApp(app)}
-      className="group bg-white border-[2.5px] border-black rounded-2xl p-4 shadow-[4px_4px_0px_#000] hover:shadow-[6px_6px_0px_#000] hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden"
+      className="group bg-white border-2 border-black rounded-xl p-3 sm:p-3.5 shadow-[2.5px_2.5px_0px_#000] hover:shadow-[3.5px_3.5px_0px_#000] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col justify-between relative overflow-hidden"
     >
-      {/* Top section: Icon + Title + Favorite */}
+      {/* Top section: Icon + Title + Share & Favorite */}
       <div>
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-2 border-black overflow-hidden flex-shrink-0 bg-[#FAF6EE] shadow-[2px_2px_0px_#000]">
+        <div className="flex items-start justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl border-2 border-black overflow-hidden flex-shrink-0 bg-[#FAF6EE] shadow-[1.5px_1.5px_0px_#000]">
               {!imgError && app.icon ? (
                 <img
                   src={app.icon}
                   alt={app.name}
                   loading="lazy"
+                  referrerPolicy="no-referrer"
                   onError={() => setImgError(true)}
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-[#FFE600] flex items-center justify-center font-black text-lg text-black">
+                <div className="w-full h-full bg-[#FFE600] flex items-center justify-center font-black text-md text-black">
                   {app.name.charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
 
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h3 className="font-black text-base text-black truncate tracking-tight group-hover:text-[#6B21A8]">
+              <div className="flex items-center gap-1 flex-wrap">
+                <h3 className="font-black text-sm sm:text-base text-black truncate tracking-tight group-hover:text-[#6B21A8] leading-tight">
                   {app.name}
                 </h3>
-                {app.isFeatured && (
+                {(app.isDemo || app.name.toLowerCase().includes('demo')) && (
+                  <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[9px] font-black uppercase rounded border border-black shadow-[1px_1px_0px_#000]">
+                    DEMO
+                  </span>
+                )}
+                {app.isFeatured && !(app.isDemo || app.name.toLowerCase().includes('demo')) && (
                   <span className="px-1.5 py-0.5 bg-[#FF5E00] text-white text-[9px] font-black uppercase rounded border border-black">
                     HOT
                   </span>
                 )}
               </div>
-              <p className="font-mono text-xs font-semibold text-neutral-600 truncate mt-0.5">
+              <p className="font-mono text-[11px] font-semibold text-neutral-600 truncate mt-0.5">
                 {app.author || 'Open Source Project'}
               </p>
 
               {/* Category Tag */}
-              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-black/30 ${getCategoryColor(app.category)}`}>
+              <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border border-black/25 ${getCategoryColor(app.category)}`}>
                   {app.category?.split('/')[0] || 'App'}
                 </span>
               </div>
             </div>
           </div>
 
-          {onToggleFavorite && (
+          <div className="flex items-center gap-0.5 flex-shrink-0">
             <button
               type="button"
-              onClick={handleFavoriteClick}
-              className="p-2 text-neutral-400 hover:text-rose-500 rounded-xl hover:bg-neutral-100 transition-colors cursor-pointer flex-shrink-0"
-              title="Bookmark app"
+              onClick={handleShareClick}
+              className="p-1.5 text-neutral-400 hover:text-black rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer"
+              title="Share app"
             >
-              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+              {isShared ? (
+                <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+              ) : (
+                <Share2 className="w-3.5 h-3.5" />
+              )}
             </button>
-          )}
+
+            {onToggleFavorite && (
+              <button
+                type="button"
+                onClick={handleFavoriteClick}
+                className="p-1.5 text-neutral-400 hover:text-rose-500 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer"
+                title="Bookmark app"
+              >
+                <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+              </button>
+            )}
+          </div>
         </div>
 
-        <p className="font-sans text-xs text-neutral-700 line-clamp-2 leading-relaxed mb-4">
+        <p className="font-sans text-xs text-neutral-700 line-clamp-2 leading-relaxed mb-2.5">
           {app.description || 'Verified open-source application release.'}
         </p>
 
         {app.patches && app.patches.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-1">
+          <div className="mb-3 flex flex-wrap gap-1">
             {app.patches.slice(0, 2).map((patch, idx) => (
               <span
                 key={idx}
-                className="px-2 py-0.5 bg-[#FAF6EE] border border-black rounded text-[10px] font-mono font-bold text-neutral-800"
+                className="px-1.5 py-0.5 bg-[#FAF6EE] border border-black rounded text-[9px] font-mono font-bold text-neutral-800"
               >
                 ✨ {patch}
               </span>
             ))}
             {app.patches.length > 2 && (
-              <span className="px-1.5 py-0.5 bg-[#FFE600] border border-black rounded text-[10px] font-mono font-bold text-black">
+              <span className="px-1 py-0.5 bg-[#FFE600] border border-black rounded text-[9px] font-mono font-bold text-black">
                 +{app.patches.length - 2} more
               </span>
             )}
@@ -251,8 +329,8 @@ export const OrionAppCard: React.FC<OrionAppCardProps> = ({
       </div>
 
       {/* Bottom Footer: Version + Get APK Button */}
-      <div className="flex items-center justify-between gap-2 pt-3 border-t-2 border-neutral-200">
-        <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-neutral-600">
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200">
+        <div className="flex items-center gap-1 font-mono text-[10px] font-bold text-neutral-600">
           <span>{app.version || 'v1.0'}</span>
           {app.size && app.size !== 'Varies' && <span className="text-neutral-400">• {app.size}</span>}
         </div>
@@ -260,9 +338,9 @@ export const OrionAppCard: React.FC<OrionAppCardProps> = ({
         <button
           type="button"
           onClick={handleDownloadClick}
-          className="py-2 px-3.5 bg-[#FFE600] hover:bg-yellow-300 text-black border-2 border-black rounded-xl font-black text-xs uppercase flex items-center gap-1.5 shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
+          className="py-1.5 px-3 bg-[#FFE600] hover:bg-yellow-300 text-black border border-black rounded-lg font-black text-[10px] sm:text-xs uppercase flex items-center gap-1 shadow-[1px_1px_0px_#000] active:translate-x-[0.5px] active:translate-y-[0.5px] transition-all cursor-pointer"
         >
-          <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+          <Download className="w-3 h-3 stroke-[2.5]" />
           <span>GET APK</span>
         </button>
       </div>

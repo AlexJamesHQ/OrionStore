@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OrionAppItem } from '../types';
 import {
@@ -22,6 +22,7 @@ import {
   QrCode,
 } from 'lucide-react';
 import { getDownloadUrlForApp } from '../services/orionAppsService';
+import { playRetroSound } from '../services/sfxService';
 
 interface OrionAppDetailModalProps {
   app: OrionAppItem | null;
@@ -36,15 +37,43 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
   const [showQr, setShowQr] = useState(false);
   const [authorCopied, setAuthorCopied] = useState(false);
 
+  useEffect(() => {
+    setImgError(false);
+    setActiveScreenshot(0);
+  }, [app?.id, app?.icon]);
+
   if (!app) return null;
 
   const downloadUrl = getDownloadUrlForApp(app);
   const screenshots = app.screenshots && app.screenshots.length > 0 ? app.screenshots : [];
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopyLink = async () => {
+    playRetroSound('click');
+    const targetUrl = downloadUrl && downloadUrl !== '#' ? downloadUrl : window.location.href;
+    const shareTitle = `${app.name} (${app.version || 'Latest'}) - OrionStore`;
+    const cleanDesc = app.description ? app.description.replace(/\n+/g, ' ').slice(0, 140) : 'Verified open-source Android APK';
+    const shareText = `📱 ${app.name} (${app.version || 'Latest'})\n${cleanDesc}...\n\n📦 Download APK: ${targetUrl}`;
+
+    if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare({ title: shareTitle, text: shareText, url: targetUrl })) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: targetUrl,
+        });
+        return;
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
   };
 
   const handleDownload = () => {
@@ -140,6 +169,7 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
                   <img
                     src={app.icon}
                     alt={app.name}
+                    referrerPolicy="no-referrer"
                     onError={() => setImgError(true)}
                     className="w-full h-full object-cover"
                   />
@@ -179,6 +209,19 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
 
           {/* Modal Scrollable Body */}
           <div className="p-4 sm:p-6 overflow-y-auto space-y-5 brutal-scroll">
+            {/* DEMO Notice Banner if Demo */}
+            {(app.isDemo || app.name.toLowerCase().includes('demo')) && (
+              <div className="bg-purple-100 border-2 border-purple-900 text-purple-950 px-3.5 py-2 rounded-xl flex items-center justify-between gap-2 font-mono text-xs font-black shadow-[2px_2px_0px_#000]">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-700" />
+                  <span>DEMO APP SAMPLE • Provided for testing update features</span>
+                </div>
+                <span className="bg-purple-700 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase">
+                  DEMO
+                </span>
+              </div>
+            )}
+
             {/* Main Action Banner */}
             <div className="bg-[#FAF6EE] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0px_#000] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -336,7 +379,7 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
                 <div className="flex items-center gap-2 mb-2.5">
                   <Sparkles className="w-4 h-4 text-[#FF5E00]" />
                   <h3 className="font-black text-xs uppercase tracking-wider text-black">
-                    APPLIED PATCHES & MODS ({app.patches.length})
+                    APPLIED PATCHES & MODS
                   </h3>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -369,7 +412,7 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
               <div>
                 <div className="flex items-center justify-between mb-2.5">
                   <h3 className="font-black text-xs uppercase tracking-wider text-black">
-                    APP SCREENSHOTS ({screenshots.length}) • Click to enlarge
+                    APP SCREENSHOTS • CLICK TO ENLARGE
                   </h3>
                   <span className="text-[10px] font-mono text-neutral-500 font-bold">
                     Scroll horizontally
@@ -387,6 +430,7 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
                         src={src}
                         alt={`Screenshot ${i + 1}`}
                         loading="lazy"
+                        referrerPolicy="no-referrer"
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -465,6 +509,8 @@ export const OrionAppDetailModal: React.FC<OrionAppDetailModalProps> = ({ app, o
               <img
                 src={lightboxImage}
                 alt="Enlarged Screenshot"
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
                 className="max-w-full max-h-[85vh] object-contain mx-auto block"
               />
             </motion.div>
